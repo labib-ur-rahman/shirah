@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1049278511789",
+    "project_id": "shirahsoft",
+    "storage_bucket": "shirahsoft.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1049278511789:android:1e03c52a63636453e82424",
+        "android_client_info": {
+          "package_name": "com.shirahsoft.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1049278511789-a2rciu7uh47v63tlp8qhpudj7fop3a4o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlreWGmAS8yJdGrLg1ZhSuFNvfO4gid7g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1049278511789-a2rciu7uh47v63tlp8qhpudj7fop3a4o.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

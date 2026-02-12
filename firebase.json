@@ -1,0 +1,38 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "shirahsoft",
+          "appId": "1:1049278511789:android:1e03c52a63636453e82424",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "shirahsoft",
+          "configurations": {
+            "android": "1:1049278511789:android:1e03c52a63636453e82424",
+            "ios": "1:1049278511789:ios:138b58452b6b0d36e82424",
+            "web": "1:1049278511789:web:072e3f83bfb96cbfe82424"
+          }
+        }
+      }
+    }
+  }
+}

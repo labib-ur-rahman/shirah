@@ -1,0 +1,162 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:shirah/features/authentication/views/screens/email_sent_screen.dart';
+import 'package:shirah/features/authentication/views/screens/forgot_password_screen.dart';
+import 'package:shirah/features/authentication/views/screens/invite_code_screen.dart';
+import 'package:shirah/features/authentication/views/screens/login_screen.dart';
+import 'package:shirah/features/authentication/views/screens/signup_screen.dart';
+import 'package:shirah/features/community/views/screens/create_post_screen.dart';
+import 'package:shirah/features/community/views/screens/feed_screen.dart';
+import 'package:shirah/features/home/views/screens/home_screen.dart';
+import 'package:shirah/features/main/views/screens/main_screen.dart';
+import 'package:shirah/features/micro_jobs/views/screens/create_micro_job_screen.dart';
+import 'package:shirah/features/micro_jobs/views/screens/job_submissions_screen.dart';
+import 'package:shirah/features/micro_jobs/views/screens/micro_job_screen.dart';
+import 'package:shirah/features/micro_jobs/views/screens/my_created_jobs_screen.dart';
+import 'package:shirah/features/micro_jobs/views/screens/worker_submissions_screen.dart';
+import 'package:shirah/features/personalization/onboarding/views/screens/language_screen.dart';
+import 'package:shirah/features/personalization/onboarding/views/screens/onboarding_screen.dart';
+import 'package:shirah/features/personalization/onboarding/views/screens/style_screen.dart';
+import 'package:shirah/features/personalization/onboarding/views/screens/theme_screen.dart';
+import 'package:shirah/features/personalization/splash/views/screens/splash_screen.dart';
+
+import 'app_routes.dart';
+
+/// App Pages - Maps routes to their corresponding pages and bindings
+/// This is where we define which screen should be shown for each route
+class AppPages {
+  AppPages._();
+
+  /// List of all app pages with their routes, screens, and bindings
+  static List<GetPage> routes = [
+    // ==================== Splash Screen ====================
+    GetPage(
+      name: AppRoutes.SPLASH,
+      page: () => const SplashScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+
+    // ==================== Onboarding Screens ====================
+    GetPage(
+      name: AppRoutes.ONBOARDING,
+      page: () => const OnboardingScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    ),
+    GetPage(
+      name: AppRoutes.LANGUAGE_SELECTION,
+      page: () => const LanguageScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    ),
+    GetPage(
+      name: AppRoutes.THEME_SELECTION,
+      page: () => const ThemeScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    ),
+    GetPage(
+      name: AppRoutes.STYLE_SELECTION,
+      page: () => const StyleScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    ),
+
+    // ==================== Authentication Screens ====================
+    GetPage(
+      name: AppRoutes.LOGIN,
+      page: () => const LoginScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.SIGNUP,
+      page: () => const SignupScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.FORGOT_PASSWORD,
+      page: () => const ForgotPasswordScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.CHECK_EMAIL,
+      page: () => const CheckEmailScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.INVITE_CODE,
+      page: () => const InviteCodeScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+
+    // ==================== Main App Screens ====================
+    GetPage(
+      name: AppRoutes.HOME,
+      page: () => const HomeScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: AppRoutes.MAIN,
+      page: () => const MainScreen(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+
+    // ==================== Community Screens ====================
+    GetPage(
+      name: AppRoutes.COMMUNITY,
+      page: () => const FeedScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.CREATE_POST,
+      page: () => const CreatePostScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+
+    // ==================== Micro Jobs Screens ====================
+    GetPage(
+      name: AppRoutes.MICRO_JOBS,
+      page: () => const MicroJobScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.CREATE_MICRO_JOB,
+      page: () => const CreateMicroJobScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.MY_CREATED_JOBS,
+      page: () => const MyCreatedJobsScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.WORKER_SUBMISSIONS,
+      page: () => const WorkerSubmissionsScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.JOB_SUBMISSIONS,
+      page: () => const JobSubmissionsScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+  ];
+}
