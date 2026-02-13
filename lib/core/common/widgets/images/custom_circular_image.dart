@@ -1,10 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:shirah/core/common/widgets/shimmers/shimmer.dart';
 import 'package:shirah/core/utils/constants/colors.dart';
 import 'package:shirah/core/utils/constants/sizes.dart';
-import 'package:shirah/core/utils/helpers/app_helper.dart';
+import 'package:shirah/core/utils/helpers/helper_functions.dart';
 
 class AppCircularImage extends StatelessWidget {
   const AppCircularImage({
@@ -14,6 +13,7 @@ class AppCircularImage extends StatelessWidget {
     this.overlayColor,
     this.backgroundColor,
     required this.image,
+    this.placeholder,
     this.fit = BoxFit.cover,
     this.padding = AppSizes.sm,
     this.isNetworkImage = false,
@@ -22,6 +22,7 @@ class AppCircularImage extends StatelessWidget {
 
   final BoxFit? fit;
   final String image;
+  final IconData? placeholder;
   final bool isNetworkImage;
   final Color? overlayColor;
   final Color? backgroundColor;
@@ -30,48 +31,43 @@ class AppCircularImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final dark = AppHelper.isDarkMode;
+    final dark = SLHelper.isDarkMode;
 
-      return GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          width: width,
-          height: height,
-          padding: EdgeInsets.all(padding),
-          decoration: BoxDecoration(
-            // If image background color is null then switch it to light and dark mode color design.
-            color:
-                backgroundColor ?? (dark ? AppColors.black : AppColors.white),
-            borderRadius: BorderRadius.circular(100),
-          ),
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: width,
+        height: height,
+        padding: EdgeInsets.all(padding),
+        decoration: BoxDecoration(
+          // If image background color is null then switch it to light and dark mode color design.
+          color: backgroundColor ?? (dark ? AppColors.black : AppColors.white),
+          borderRadius: BorderRadius.circular(100),
+        ),
 
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(100),
-            child: Center(
-              child: isNetworkImage
-                  ? CachedNetworkImage(
-                      fit: fit,
-                      color: overlayColor,
-                      imageUrl: image,
-                      progressIndicatorBuilder:
-                          (context, url, downloadProgress) => AppShimmerEffect(
-                            width: 55,
-                            height: 55,
-                            radius: 55,
-                          ),
-                      errorWidget: (context, url, error) =>
-                          const Icon(Icons.error),
-                    )
-                  : Image(
-                      fit: fit,
-                      image: AssetImage(image),
-                      color: overlayColor,
-                    ),
-            ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(100),
+          child: Center(
+            child: isNetworkImage
+                ? CachedNetworkImage(
+                    fit: fit,
+                    color: overlayColor,
+                    imageUrl: image,
+                    progressIndicatorBuilder:
+                        (context, url, downloadProgress) =>
+                            AppShimmerEffect(width: 55, height: 55, radius: 55),
+                    errorWidget: (context, url, error) => placeholder != null
+                        ? Icon(placeholder, color: overlayColor)
+                        : const Icon(Icons.error),
+                  )
+                : Image(
+                    fit: fit,
+                    image: AssetImage(image),
+                    color: overlayColor,
+                  ),
           ),
         ),
-      );
-    });
+      ),
+    );
   }
 }

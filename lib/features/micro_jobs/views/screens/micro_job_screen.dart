@@ -70,7 +70,7 @@ class MicroJobScreen extends StatelessWidget {
                       crossAxisCount: 2,
                       crossAxisSpacing: 10.w,
                       mainAxisSpacing: 10.h,
-                      childAspectRatio: 0.72,
+                      childAspectRatio: 0.80,
                     ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final job = controller.availableJobs[index];

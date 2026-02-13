@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:shirah/core/utils/constants/colors.dart';
 import 'package:shirah/core/utils/helpers/app_helper.dart';
 
@@ -17,17 +16,15 @@ class AppShimmerEffect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final dark = AppHelper.isDarkMode;
+    final dark = AppHelper.isDarkMode;
 
-      return Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: color ?? (dark ? AppColors.darkerGrey : Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(radius),
-        ),
-      );
-    });
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: color ?? (dark ? AppColors.darkerGrey : Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
   }
 }

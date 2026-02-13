@@ -4,6 +4,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shirah/core/common/styles/global_text_style.dart';
 import 'package:shirah/core/utils/constants/app_style_colors.dart';
+import 'package:shirah/core/utils/constants/colors.dart';
 import 'package:shirah/data/models/micro_job/micro_job_model.dart';
 
 /// Micro Job Grid Card - Compact card for 2-column grid display
@@ -43,7 +44,7 @@ class MicroJobGridCard extends StatelessWidget {
               ),
               child: SizedBox(
                 width: double.infinity,
-                height: 100.h,
+                height: 130.h,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -57,7 +58,7 @@ class MicroJobGridCard extends StatelessWidget {
                         child: Center(
                           child: Icon(
                             Iconsax.image,
-                            size: 24.sp,
+                            size: 28,
                             color: isDark ? Colors.white24 : Colors.grey[400],
                           ),
                         ),
@@ -69,7 +70,7 @@ class MicroJobGridCard extends StatelessWidget {
                         child: Center(
                           child: Icon(
                             Iconsax.image,
-                            size: 24.sp,
+                            size: 28,
                             color: isDark ? Colors.white24 : Colors.grey[400],
                           ),
                         ),
@@ -86,13 +87,13 @@ class MicroJobGridCard extends StatelessWidget {
                           vertical: 4.h,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981),
-                          borderRadius: BorderRadius.circular(8.r),
+                          color: AppColors.buttonPrimary,
+                          borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Text(
                           '৳${job.perUserPrice.toStringAsFixed(0)}',
                           style: getBoldTextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: Colors.white,
                           ),
                         ),

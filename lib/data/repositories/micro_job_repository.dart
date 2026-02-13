@@ -223,6 +223,7 @@ class MicroJobRepository extends GetxController {
       final result = await _functions.call('getMySubmissions', {
         'limit': limit,
       });
+      LoggerService.info('📋 XYZ $result');
 
       final submissions = (result['data']?['submissions'] as List? ?? [])
           .map(

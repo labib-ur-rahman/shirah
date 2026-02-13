@@ -8,7 +8,7 @@
 
 ---
 
-## 📋 Collections Overview (15 Total)
+## 📋 Collections Overview (16 Total)
 
 | # | Collection | Document ID | Purpose |
 |---|-----------|-------------|---------|
@@ -27,6 +27,7 @@
 | 13 | `permission_templates` | `{templateId}` | Permission template presets |
 | 14 | `audit_logs` | `{autoId}` | System-wide audit trail |
 | 15 | `configurations` | `app_settings` | Dynamic business configuration (all runtime constants) |
+| 16 | `home_feeds` | `{feedId}` | Unified home feed index (presentation & ordering layer) |
 
 ---
 
@@ -932,6 +933,60 @@ VERIFICATION_PRICE:  250৳                                          [DYNAMIC �
 SUBSCRIPTION_PRICE:  400৳                                          [DYNAMIC → subscription.priceBDT]
 MAX_STREAK_MULTI:    3.0x (at Day 28+)                             [DYNAMIC → streak.maxMultiplier]
 ```
+
+---
+
+## 1️⃣6️⃣ `home_feeds` Collection — Unified Home Feed Index
+
+> **Presentation & control layer for the unified home feed.**  
+> Decides WHAT to show and WHEN — never stores actual content.  
+> Content lives in `/posts`, `/jobs` and is resolved via `refId`.  
+> See: `home_feed_flutter_implementation_guide.md` for full implementation details.
+
+```
+home_feeds (Collection)
+└── {feedId} (Document)                  # Auto-generated or "feed_" + refId
+    ├── feedId : String                  # Same as document ID
+    ├── type : String                    # Feed item type
+    │                                    # ENUM: "COMMUNITY_POST" | "MICRO_JOB" | "NATIVE_AD" |
+    │                                    #       "RESELLING" | "DRIVE_OFFER" | "SUGGESTED_FOLLOWING" |
+    │                                    #       "ON_DEMAND_POST" | "BUY_SELL_POST" | "SPONSORED" |
+    │                                    #       "ADS_VIEW" | "ANNOUNCEMENT"
+    ├── refId : String                   # Reference to source document (post ID, job ID, etc.)
+    ├── priority : Number                # Display ordering priority (higher = shown first)
+    │                                    # VALUES: 5 (LOW) | 10 (NORMAL) | 20 (IMPORTANT) | 30 (CRITICAL)
+    ├── status : String                  # Feed item lifecycle status
+    │                                    # ENUM: "ACTIVE" | "DISABLED" | "HIDDEN" | "REMOVED"
+    ├── visibility : String              # Who can see this feed item
+    │                                    # ENUM: "PUBLIC" | "FRIENDS" | "ONLY_ME"
+    ├── createdAt : Timestamp            # When feed item was created
+    │
+    ├── meta : Map                       # Extensible metadata
+    │   ├── authorId : String            # UID of content author
+    │   ├── adminPinned : Boolean        # Whether admin pinned this item (default: false)
+    │   └── boosted : Boolean            # Whether this item is boosted (default: false)
+    │
+    └── rules : Map (optional)           # Per-item display rules (for ads)
+        ├── minGap : Number              # Min items between this and next ad (default: 6)
+        └── maxPerSession : Number       # Max times shown per session (default: 3)
+```
+
+### Feed Ordering Query
+```
+WHERE status == "ACTIVE"
+ORDER BY priority DESC, createdAt DESC
+LIMIT 20
+```
+
+### Required Composite Index
+- Collection: `home_feeds`
+- Fields: `status ASC`, `priority DESC`, `createdAt DESC`
+
+### Cloud Functions Integration
+- Feed items are auto-created by Firestore triggers when posts/jobs are approved
+- Feed items are auto-removed when posts are deleted or jobs are rejected
+- Native Ad feeds are created via admin-only callable function
+- All changes are audit-logged
 
 ---
 

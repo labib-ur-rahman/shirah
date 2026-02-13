@@ -44,6 +44,9 @@ class FirebasePaths {
   /// Job submissions subcollection
   static const String jobSubmissions = 'submissions';
 
+  /// Home Feeds collection - Unified feed index
+  static const String homeFeeds = 'home_feeds';
+
   /// Products collection - Reselling products
   static const String products = 'products';
 
@@ -94,6 +97,9 @@ class FirebasePaths {
 
   /// Get product document path
   static String product(String productId) => '$products/$productId';
+
+  /// Get feed item document path
+  static String feedItem(String feedId) => '$homeFeeds/$feedId';
 
   /// Get notification document path
   static String notification(String notificationId) =>

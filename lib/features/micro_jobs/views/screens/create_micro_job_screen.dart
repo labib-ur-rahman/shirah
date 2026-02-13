@@ -26,6 +26,7 @@ class CreateMicroJobScreen extends StatelessWidget {
       appBar: _buildAppBar(controller, isDark, colors),
       body: Form(
         key: controller.formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           children: [
             Expanded(
@@ -64,6 +65,7 @@ class CreateMicroJobScreen extends StatelessWidget {
                       isDark: isDark,
                       maxLines: 8,
                       minLines: 5,
+                      keyboardType: TextInputType.multiline,
                       maxLength: 5000,
                       validator: (v) {
                         if (v == null || v.trim().length < 20) {
@@ -109,29 +111,6 @@ class CreateMicroJobScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _buildTextField(
-                            controller: controller.limitController,
-                            hint: 'Workers',
-                            isDark: isDark,
-                            prefixIcon: Iconsax.people,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return 'Required';
-                              }
-                              final n = int.tryParse(v);
-                              if (n == null || n < 1 || n > 10000) {
-                                return '1–10,000';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildTextField(
                             controller: controller.perUserPriceController,
                             hint: '৳ Per user',
                             isDark: isDark,
@@ -149,6 +128,30 @@ class CreateMicroJobScreen extends StatelessWidget {
                               final n = double.tryParse(v);
                               if (n == null || n < 0.5 || n > 1000) {
                                 return '৳0.5–৳1,000';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+
+                        Expanded(
+                          child: _buildTextField(
+                            controller: controller.limitController,
+                            hint: 'Workers',
+                            isDark: isDark,
+                            prefixIcon: Iconsax.people,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: (v) {
+                              if (v == null || v.isEmpty) {
+                                return 'Required';
+                              }
+                              final n = int.tryParse(v);
+                              if (n == null || n < 1 || n > 10000) {
+                                return '1–10,000';
                               }
                               return null;
                             },

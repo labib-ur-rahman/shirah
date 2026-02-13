@@ -11,13 +11,28 @@ import 'package:shirah/core/localization/app_string_localizations.dart';
 import 'package:shirah/core/utils/constants/lottie_path.dart';
 import 'package:shirah/core/utils/validators/app_validator.dart';
 import 'package:shirah/features/authentication/controllers/auth_controller.dart';
+import 'package:shirah/features/authentication/views/screens/signup_screen.dart';
 import 'package:shirah/features/authentication/views/widgets/gradient_auth_background.dart';
 import 'package:shirah/routes/app_routes.dart';
 
 /// Login Screen — matches Figma design node 803:271
 /// Gradient background with white card form container
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load saved credentials if "Remember me" was previously checked
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AuthController.instance.loadSavedCredentials();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +118,7 @@ class LoginScreen extends StatelessWidget {
                             hintText: AppStrings.authEmailHint,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
+                            inputFormatters: [LowerCaseTextFormatter()],
                             prefixIcon: Icon(
                               Iconsax.sms,
                               size: 20.sp,
@@ -147,9 +163,14 @@ class LoginScreen extends StatelessWidget {
                                       height: 20.h,
                                       child: Checkbox(
                                         value: controller.rememberMe.value,
-                                        onChanged: (v) =>
-                                            controller.rememberMe.value =
-                                                v ?? false,
+                                        onChanged: (v) {
+                                          controller.rememberMe.value =
+                                              v ?? false;
+                                          // If user unchecks, clear saved credentials
+                                          if (!controller.rememberMe.value) {
+                                            controller.clearRememberMe();
+                                          }
+                                        },
                                         materialTapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
                                         activeColor: const Color(0xFF006AED),
@@ -195,20 +216,22 @@ class LoginScreen extends StatelessWidget {
                           Obx(
                             () => GradientActionButton(
                               text: AppStrings.authLogIn,
-                              onPressed: () {
-                                SLFullScreenLoader.openLoadingDialog(
-                                  AppStrings.loading,
-                                  LottiePath.docerAnimation,
-                                );
-                                controller
-                                    .loginWithEmailPassword()
-                                    .then((_) {
-                                      SLFullScreenLoader.stopLoading();
-                                    })
-                                    .catchError((_) {
-                                      SLFullScreenLoader.stopLoading();
-                                    });
-                              },
+                              onPressed: controller.isLoading.value
+                                  ? null
+                                  : () {
+                                      SLFullScreenLoader.openLoadingDialog(
+                                        AppStrings.loading,
+                                        LottiePath.docerAnimation,
+                                      );
+                                      controller
+                                          .loginWithEmailPassword()
+                                          .then((_) {
+                                            SLFullScreenLoader.stopLoading();
+                                          })
+                                          .catchError((error) {
+                                            SLFullScreenLoader.stopLoading();
+                                          });
+                                    },
                               isLoading: controller.isLoading.value,
                             ),
                           ),

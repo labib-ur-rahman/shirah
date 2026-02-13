@@ -5,10 +5,12 @@ import 'package:shirah/core/services/firebase_service.dart';
 import 'package:shirah/core/services/theme_service.dart';
 import 'package:shirah/core/utils/manager/network_manager.dart';
 import 'package:shirah/data/repositories/community_repository.dart';
+import 'package:shirah/data/repositories/home_feed_repository.dart';
 import 'package:shirah/data/repositories/micro_job_repository.dart';
 import 'package:shirah/features/authentication/controllers/auth_controller.dart';
 import 'package:shirah/features/community/controllers/feed_controller.dart';
 import 'package:shirah/features/home/controllers/home_controller.dart';
+import 'package:shirah/features/home/controllers/home_feed_controller.dart';
 import 'package:shirah/features/main/controllers/main_header_controller.dart';
 import 'package:shirah/features/micro_jobs/controllers/micro_job_controller.dart';
 import 'package:shirah/features/micro_jobs/controllers/my_created_jobs_controller.dart';
@@ -18,6 +20,8 @@ import 'package:shirah/features/personalization/onboarding/controllers/theme_con
 import 'package:shirah/features/profile/controllers/user_controller.dart';
 import 'package:shirah/features/rewards/controllers/reward_controller.dart';
 import 'package:shirah/features/wallet/controllers/wallet_controller.dart';
+import 'package:shirah/modules/admins/home_feed/controllers/admin_feed_controller.dart';
+import 'package:shirah/modules/admins/home_feed/repositories/admin_feed_repository.dart';
 
 /// Initial Binding - Sets up initial dependencies when app starts
 /// This binding is called when the app launches and sets up global controllers
@@ -70,6 +74,12 @@ class InitialBinding extends Bindings {
     // Home Controller - Main app controller
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
 
+    // Home Feed Repository - Firebase operations for unified feed
+    Get.put<HomeFeedRepository>(HomeFeedRepository(), permanent: true);
+
+    // Home Feed Controller - Unified feed state management
+    Get.lazyPut<HomeFeedController>(() => HomeFeedController(), fenix: true);
+
     // ==================== Community ====================
     // Community Repository - Firebase operations for posts/comments/reactions
     Get.put<CommunityRepository>(CommunityRepository(), permanent: true);
@@ -95,5 +105,12 @@ class InitialBinding extends Bindings {
       () => WorkerSubmissionsController(),
       fenix: true,
     );
+
+    // ==================== Admin Panel ====================
+    // Admin Feed Repository - Cloud Functions operations for feed management
+    Get.put<AdminFeedRepository>(AdminFeedRepository(), permanent: true);
+
+    // Admin Feed Controller - Feed management state
+    Get.lazyPut<AdminFeedController>(() => AdminFeedController(), fenix: true);
   }
 }

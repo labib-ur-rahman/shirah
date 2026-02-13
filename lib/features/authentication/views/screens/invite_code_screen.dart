@@ -5,8 +5,10 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:shirah/core/common/styles/global_text_style.dart';
 import 'package:shirah/core/common/widgets/buttons/gradient_action_button.dart';
+import 'package:shirah/core/common/widgets/popups/full_screen_loader.dart';
 import 'package:shirah/core/common/widgets/text_fields/app_text_field.dart';
 import 'package:shirah/core/localization/app_string_localizations.dart';
+import 'package:shirah/core/utils/constants/lottie_path.dart';
 import 'package:shirah/core/utils/constants/svg_path.dart';
 import 'package:shirah/core/utils/helpers/svg_icon_helper.dart';
 import 'package:shirah/core/utils/validators/app_validator.dart';
@@ -244,15 +246,31 @@ class InviteCodeScreen extends StatelessWidget {
                             Obx(
                               () => GradientActionButton(
                                 text: AppStrings.authCompleteSignup,
-                                onPressed: () {
-                                  if (formKey.currentState!.validate()) {
-                                    controller.phoneController.text =
-                                        phoneCtrl.text;
-                                    controller.inviteCodeController.text =
-                                        inviteCtrl.text;
-                                    controller.completeGoogleSignup();
-                                  }
-                                },
+                                onPressed: controller.isLoading.value
+                                    ? null
+                                    : () {
+                                        if (formKey.currentState!.validate()) {
+                                          controller.phoneController.text =
+                                              phoneCtrl.text;
+                                          controller.inviteCodeController.text =
+                                              inviteCtrl.text;
+
+                                          // Show loading dialog
+                                          SLFullScreenLoader.openLoadingDialog(
+                                            AppStrings.loading,
+                                            LottiePath.docerAnimation,
+                                          );
+
+                                          controller
+                                              .completeGoogleSignup()
+                                              .then((_) {
+                                                SLFullScreenLoader.stopLoading();
+                                              })
+                                              .catchError((error) {
+                                                SLFullScreenLoader.stopLoading();
+                                              });
+                                        }
+                                      },
                                 isLoading: controller.isLoading.value,
                                 showArrow: false,
                               ),

@@ -128,6 +128,11 @@ export const AUDIT_ACTIONS = {
   JOB_SUBMISSION_CREATE: "job_submission.create",
   JOB_SUBMISSION_APPROVE: "job_submission.approve",
   JOB_SUBMISSION_REJECT: "job_submission.reject",
+  // Home Feed actions
+  FEED_CREATE: "feed.create",
+  FEED_STATUS_CHANGE: "feed.status_change",
+  FEED_REMOVE: "feed.remove",
+  FEED_PRIORITY_CHANGE: "feed.priority_change",
 } as const;
 
 // ============================================
@@ -157,6 +162,45 @@ export const COLLECTIONS = {
   // Micro Jobs
   JOBS: "jobs",
   JOB_SUBMISSIONS: "job_submissions",
+  // Home Feed
+  HOME_FEEDS: "home_feeds",
+} as const;
+
+// ============================================
+// HOME FEED CONSTANTS
+// ============================================
+export const FEED_ITEM_TYPES = {
+  COMMUNITY_POST: "COMMUNITY_POST",
+  MICRO_JOB: "MICRO_JOB",
+  RESELLING: "RESELLING",
+  DRIVE_OFFER: "DRIVE_OFFER",
+  SUGGESTED_FOLLOWING: "SUGGESTED_FOLLOWING",
+  ON_DEMAND_POST: "ON_DEMAND_POST",
+  BUY_SELL_POST: "BUY_SELL_POST",
+  SPONSORED: "SPONSORED",
+  ADS_VIEW: "ADS_VIEW",
+  NATIVE_AD: "NATIVE_AD",
+  ANNOUNCEMENT: "ANNOUNCEMENT",
+} as const;
+
+export const FEED_STATUS = {
+  ACTIVE: "ACTIVE",
+  DISABLED: "DISABLED",
+  HIDDEN: "HIDDEN",
+  REMOVED: "REMOVED",
+} as const;
+
+export const FEED_VISIBILITY = {
+  PUBLIC: "PUBLIC",
+  FRIENDS: "FRIENDS",
+  ONLY_ME: "ONLY_ME",
+} as const;
+
+export const FEED_PRIORITY = {
+  LOW: 5,
+  NORMAL: 10,
+  IMPORTANT: 20,
+  CRITICAL: 30,
 } as const;
 
 // ============================================

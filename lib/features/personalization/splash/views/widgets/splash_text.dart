@@ -22,7 +22,7 @@ class _SplashTextState extends State<SplashText>
   final List<Animation<double>> _letterAnimations = [];
   final List<Animation<Offset>> _slideAnimations = [];
 
-  final String _appName = "shirah";
+  final String _appName = "SHIRAH";
 
   @override
   void initState() {

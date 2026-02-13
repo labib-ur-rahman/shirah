@@ -96,6 +96,7 @@ class SignupScreen extends StatelessWidget {
                             hintText: AppStrings.authEmailHint,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
+                            inputFormatters: [LowerCaseTextFormatter()],
                             prefixIcon: Icon(
                               Iconsax.sms,
                               size: 20.sp,
@@ -226,20 +227,22 @@ class SignupScreen extends StatelessWidget {
                           Obx(
                             () => GradientActionButton(
                               text: AppStrings.authSignUp,
-                              onPressed: () {
-                                SLFullScreenLoader.openLoadingDialog(
-                                  AppStrings.loading,
-                                  LottiePath.docerAnimation,
-                                );
-                                controller
-                                    .signupWithEmailPassword()
-                                    .then((_) {
-                                      SLFullScreenLoader.stopLoading();
-                                    })
-                                    .catchError((_) {
-                                      SLFullScreenLoader.stopLoading();
-                                    });
-                              },
+                              onPressed: controller.isLoading.value
+                                  ? null
+                                  : () {
+                                      SLFullScreenLoader.openLoadingDialog(
+                                        AppStrings.loading,
+                                        LottiePath.docerAnimation,
+                                      );
+                                      controller
+                                          .signupWithEmailPassword()
+                                          .then((_) {
+                                            SLFullScreenLoader.stopLoading();
+                                          })
+                                          .catchError((error) {
+                                            SLFullScreenLoader.stopLoading();
+                                          });
+                                    },
                               isLoading: controller.isLoading.value,
                             ),
                           ),
@@ -375,6 +378,20 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   ) {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
+
+/// Converts text to lowercase as user types
+class LowerCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toLowerCase(),
       selection: newValue.selection,
     );
   }

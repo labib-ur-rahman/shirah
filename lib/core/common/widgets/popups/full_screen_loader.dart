@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shirah/core/common/widgets/loaders/animation_loader.dart';
 import 'package:shirah/core/utils/constants/colors.dart';
-import 'package:shirah/core/utils/helpers/app_helper.dart';
+import 'package:shirah/core/utils/helpers/helper_functions.dart';
 
 /// A utility class for managing a full-screen loading dialog.
 class SLFullScreenLoader {
@@ -13,13 +13,15 @@ class SLFullScreenLoader {
   ///   -  text: The text to be displayed in the loading dialog.
   ///   -  animation: The Lottie animation to be shown.
   static void openLoadingDialog(String text, String animation) {
-    final isDark = AppHelper.isDarkMode;
+    final isDark = SLHelper.isDarkMode;
 
     showDialog(
-      context:
-          Get.overlayContext!, // Use Get.overlayContext for overlay dialogs
+      context: Get.context!, // Use Get.context for proper dialog context
       barrierDismissible:
           false, // The dialog can't be dismissed by tapping outside it
+      barrierColor: Colors.black.withValues(
+        alpha: 0.3,
+      ), // Add semi-transparent barrier
       builder: (_) => PopScope(
         canPop: false, // Disable popping with the back button
         child: Container(
@@ -40,8 +42,14 @@ class SLFullScreenLoader {
   /// Stop the currently open loading dialog.
   /// This method doesn't return anything.
   static stopLoading() {
-    Navigator.of(
-      Get.overlayContext!,
-    ).pop(); // Close the dialog using the Navigator
+    try {
+      // Check if there's a context available and a dialog is open
+      if (Get.isDialogOpen == true) {
+        Navigator.of(Get.context!, rootNavigator: true).pop();
+      }
+    } catch (e) {
+      // Silently handle any navigation errors during cleanup
+      // This prevents cascade errors if dialog was already closed
+    }
   }
 }

@@ -70,7 +70,7 @@ class CommunityRepository extends GetxController {
           'images': imageUrl != null ? [imageUrl] : [],
         },
         'privacy': privacy,
-        'status': PostStatus.approved, // Auto-approve for now
+        'status': PostStatus.pending, // PENDING by default, requires admin approval
         'reactionSummary': {
           'total': 0,
           'like': 0,

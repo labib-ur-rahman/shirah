@@ -19,6 +19,8 @@ import 'package:shirah/features/personalization/onboarding/views/screens/onboard
 import 'package:shirah/features/personalization/onboarding/views/screens/style_screen.dart';
 import 'package:shirah/features/personalization/onboarding/views/screens/theme_screen.dart';
 import 'package:shirah/features/personalization/splash/views/screens/splash_screen.dart';
+import 'package:shirah/modules/admins/home_feed/views/screens/admin_feed_management_screen.dart';
+import 'package:shirah/modules/admins/home_feed/views/screens/create_native_ad_screen.dart';
 
 import 'app_routes.dart';
 
@@ -155,6 +157,20 @@ class AppPages {
     GetPage(
       name: AppRoutes.JOB_SUBMISSIONS,
       page: () => const JobSubmissionsScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+
+    // ==================== Admin Panel Screens ====================
+    GetPage(
+      name: AppRoutes.ADMIN_FEED_MANAGEMENT,
+      page: () => const AdminFeedManagementScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.ADMIN_CREATE_NATIVE_AD,
+      page: () => const CreateNativeAdScreen(),
       transition: Transition.rightToLeftWithFade,
       transitionDuration: const Duration(milliseconds: 400),
     ),

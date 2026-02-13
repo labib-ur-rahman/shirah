@@ -45,8 +45,9 @@ class _ReactionListScreenState extends State<ReactionListScreen>
     // Add tabs for reaction types that have counts > 0
     if (widget.reactionSummary.like > 0) _tabs.add(ReactionType.like);
     if (widget.reactionSummary.love > 0) _tabs.add(ReactionType.love);
-    if (widget.reactionSummary.insightful > 0)
+    if (widget.reactionSummary.insightful > 0) {
       _tabs.add(ReactionType.insightful);
+    }
     if (widget.reactionSummary.support > 0) _tabs.add(ReactionType.support);
     if (widget.reactionSummary.inspiring > 0) _tabs.add(ReactionType.inspiring);
   }

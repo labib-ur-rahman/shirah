@@ -437,4 +437,58 @@ class CloudFunctionsService extends GetxController {
   }) async {
     return call('deleteCommunityPost', {'postId': postId});
   }
+
+  // ==================== Home Feed Admin Functions ====================
+
+  /// Create a native ad feed item (Admin)
+  Future<Map<String, dynamic>> createNativeAdFeed({
+    required String adUnitId,
+    required String platform,
+    int? minGap,
+    int? maxPerSession,
+  }) async {
+    return call('createNativeAdFeed', {
+      'adUnitId': adUnitId,
+      'platform': platform,
+      if (minGap != null) 'minGap': minGap,
+      if (maxPerSession != null) 'maxPerSession': maxPerSession,
+    });
+  }
+
+  /// Update feed item status (Admin/Moderator)
+  Future<Map<String, dynamic>> updateFeedItemStatus({
+    required String feedId,
+    required String status,
+    String? reason,
+  }) async {
+    return call('updateFeedItemStatus', {
+      'feedId': feedId,
+      'status': status,
+      if (reason != null) 'reason': reason,
+    });
+  }
+
+  /// Update feed item priority (Admin)
+  Future<Map<String, dynamic>> updateFeedItemPriority({
+    required String feedId,
+    required int priority,
+  }) async {
+    return call('updateFeedItemPriority', {
+      'feedId': feedId,
+      'priority': priority,
+    });
+  }
+
+  /// Get admin feed items with filters (Admin/Moderator)
+  Future<Map<String, dynamic>> getAdminFeedItems({
+    int? limit,
+    String? status,
+    String? type,
+  }) async {
+    return call('getAdminFeedItems', {
+      if (limit != null) 'limit': limit,
+      if (status != null) 'status': status,
+      if (type != null) 'type': type,
+    });
+  }
 }

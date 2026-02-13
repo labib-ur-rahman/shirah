@@ -11,9 +11,9 @@ import 'package:shirah/features/main/controllers/main_header_controller.dart';
 import 'package:shirah/features/main/views/widgets/brand_logo.dart';
 import 'package:shirah/features/main/views/widgets/tab_icon.dart';
 import 'package:shirah/features/main/views/widgets/profile_tab_icon.dart';
+import 'package:shirah/features/profile/controllers/user_controller.dart';
 
 /// Main tab bar with shirah header design using Material TabBar
-/// Matches Figma design: node-id 468-5917
 ///
 /// Features:
 /// - Gradient background based on app style (reactive to theme changes)
@@ -113,7 +113,7 @@ class MainTabBar extends StatelessWidget {
                               GestureDetector(
                                 onTap: () => controller.showInbox(),
                                 child: SvgIconHelper.buildIcon(
-                                  assetPath: SvgPath.messageUnselected,
+                                  assetPath: SvgPath.walletUnselected,
                                   size: 26,
                                   color: Colors.white,
                                 ),
@@ -198,11 +198,16 @@ class MainTabBar extends StatelessWidget {
                               ),
 
                               /// -- Profile Tab (uses network image)
-                              ProfileTabIcon(
-                                isActive: controller.isTabActive(4),
-                                imageUrl:
-                                    'https://avatars.githubusercontent.com/u/177158869',
-                              ),
+                              Obx(() {
+                                final avatarUrl =
+                                    UserController.instance.avatarUrl;
+                                return ProfileTabIcon(
+                                  isActive: controller.isTabActive(4),
+                                  imageUrl: avatarUrl.isNotEmpty
+                                      ? avatarUrl
+                                      : null,
+                                );
+                              }),
                             ],
                           ),
                         ),

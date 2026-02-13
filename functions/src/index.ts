@@ -143,6 +143,20 @@ export {
 } from "./features/micro-jobs/micro-job-operations";
 
 // ============================================
+// HOME FEED FUNCTIONS
+// ============================================
+export {
+  onPostApproved,
+  onJobApproved,
+  onPostDeleted,
+  onJobStatusChange,
+  createNativeAdFeed,
+  updateFeedItemStatus,
+  updateFeedItemPriority,
+  getAdminFeedItems,
+} from "./features/home-feed/home-feed-operations";
+
+// ============================================
 // FUNCTION REFERENCE (For Flutter Developers)
 // ============================================
 /**

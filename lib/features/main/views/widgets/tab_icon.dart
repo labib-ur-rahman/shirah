@@ -26,7 +26,11 @@ class TabIcon extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          SvgIconHelper.buildIcon(assetPath: iconPath, size: iconSize),
+          SvgIconHelper.buildIcon(
+            assetPath: iconPath,
+            size: iconSize,
+            color: Colors.white,
+          ),
           // Red notification dot for Activities tab
           if (showDot)
             Positioned(

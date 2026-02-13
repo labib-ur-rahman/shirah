@@ -247,7 +247,7 @@ class WorkerSubmissionsScreen extends StatelessWidget {
   Widget _buildEmptyState(bool isDark, String filter) {
     String message = filter == 'all'
         ? 'No submissions yet'
-        : 'No ${filter} submissions';
+        : 'No $filter submissions';
 
     return Center(
       child: Column(

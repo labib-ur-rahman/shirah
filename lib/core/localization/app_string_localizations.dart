@@ -381,4 +381,103 @@ class AppStrings {
   static String get obFeature10 => 'ob_feature_10'.tr;
   static String get obFeature11 => 'ob_feature_11'.tr;
   static String get obFeature12 => 'ob_feature_12'.tr;
+
+  // ==================== Home Feed ====================
+  static String get feedEmpty => 'feed_empty'.tr;
+  static String get feedEmptySubtitle => 'feed_empty_subtitle'.tr;
+  static String get feedErrorSubtitle => 'feed_error_subtitle'.tr;
+  static String get feedAdBadge => 'feed_ad_badge'.tr;
+  static String get feedAdLoading => 'feed_ad_loading'.tr;
+  static String get feedSponsoredBadge => 'feed_sponsored_badge'.tr;
+  static String get feedAnnouncementBadge => 'feed_announcement_badge'.tr;
+  static String get feedMicroJobBadge => 'feed_micro_job_badge'.tr;
+  static String get feedCommunityPost => 'feed_community_post'.tr;
+  static String get feedReselling => 'feed_reselling'.tr;
+  static String get feedDriveOffer => 'feed_drive_offer'.tr;
+  static String get feedOnDemand => 'feed_on_demand'.tr;
+  static String get feedBuySell => 'feed_buy_sell'.tr;
+  static String get feedAdsView => 'feed_ads_view'.tr;
+  static String get feedAdsViewProgress => 'feed_ads_view_progress'.tr;
+  static String get feedAdsViewComplete => 'feed_ads_view_complete'.tr;
+  static String get feedAdsViewRemaining => 'feed_ads_view_remaining'.tr;
+  static String get feedSuggestedFollowing => 'feed_suggested_following'.tr;
+  static String get feedLoadMore => 'feed_load_more'.tr;
+  static String get feedEndOfFeed => 'feed_end_of_feed'.tr;
+
+  // ==================== Admin Feed Management ====================
+  static String get adminFeedTitle => 'admin_feed_title'.tr;
+  static String get adminFeedSubtitle => 'admin_feed_subtitle'.tr;
+  static String get adminFeedAll => 'admin_feed_all'.tr;
+  static String get adminFeedActive => 'admin_feed_active'.tr;
+  static String get adminFeedDisabled => 'admin_feed_disabled'.tr;
+  static String get adminFeedHidden => 'admin_feed_hidden'.tr;
+  static String get adminFeedRemoved => 'admin_feed_removed'.tr;
+  static String get adminFeedTotalItems => 'admin_feed_total_items'.tr;
+  static String get adminFeedActiveItems => 'admin_feed_active_items'.tr;
+  static String get adminFeedAdsCount => 'admin_feed_ads_count'.tr;
+  static String get adminFeedDisabledCount => 'admin_feed_disabled_count'.tr;
+  static String get adminFeedEmpty => 'admin_feed_empty'.tr;
+  static String get adminFeedEmptySubtitle => 'admin_feed_empty_subtitle'.tr;
+  static String get adminFeedType => 'admin_feed_type'.tr;
+  static String get adminFeedStatus => 'admin_feed_status'.tr;
+  static String get adminFeedPriority => 'admin_feed_priority'.tr;
+  static String get adminFeedVisibility => 'admin_feed_visibility'.tr;
+  static String get adminFeedCreatedAt => 'admin_feed_created_at'.tr;
+  static String get adminFeedRefId => 'admin_feed_ref_id'.tr;
+  static String get adminFeedAuthorId => 'admin_feed_author_id'.tr;
+  static String get adminFeedPinned => 'admin_feed_pinned'.tr;
+  static String get adminFeedBoosted => 'admin_feed_boosted'.tr;
+  static String get adminFeedChangeStatus => 'admin_feed_change_status'.tr;
+  static String get adminFeedChangePriority => 'admin_feed_change_priority'.tr;
+  static String get adminFeedStatusReason => 'admin_feed_status_reason'.tr;
+  static String get adminFeedStatusUpdated => 'admin_feed_status_updated'.tr;
+  static String get adminFeedPriorityUpdated =>
+      'admin_feed_priority_updated'.tr;
+  static String get adminFeedConfirmRemove => 'admin_feed_confirm_remove'.tr;
+  static String get adminFeedConfirmDisable => 'admin_feed_confirm_disable'.tr;
+  static String get adminFeedDetailTitle => 'admin_feed_detail_title'.tr;
+  static String get adminFeedFilterByType => 'admin_feed_filter_by_type'.tr;
+  static String get adminFeedFilterByStatus => 'admin_feed_filter_by_status'.tr;
+  static String get adminFeedSearchHint => 'admin_feed_search_hint'.tr;
+  static String get adminFeedPriorityLow => 'admin_feed_priority_low'.tr;
+  static String get adminFeedPriorityNormal => 'admin_feed_priority_normal'.tr;
+  static String get adminFeedPriorityImportant =>
+      'admin_feed_priority_important'.tr;
+  static String get adminFeedPriorityCritical =>
+      'admin_feed_priority_critical'.tr;
+  static String get adminFeedNoRef => 'admin_feed_no_ref'.tr;
+  static String get adminFeedActions => 'admin_feed_actions'.tr;
+
+  // ==================== Admin Native Ad Management ====================
+  static String get adminNativeAdTitle => 'admin_native_ad_title'.tr;
+  static String get adminNativeAdSubtitle => 'admin_native_ad_subtitle'.tr;
+  static String get adminNativeAdCreate => 'admin_native_ad_create'.tr;
+  static String get adminNativeAdCreateSubtitle =>
+      'admin_native_ad_create_subtitle'.tr;
+  static String get adminNativeAdUnitId => 'admin_native_ad_unit_id'.tr;
+  static String get adminNativeAdUnitIdHint =>
+      'admin_native_ad_unit_id_hint'.tr;
+  static String get adminNativeAdPlatform => 'admin_native_ad_platform'.tr;
+  static String get adminNativeAdPlatformHint =>
+      'admin_native_ad_platform_hint'.tr;
+  static String get adminNativeAdMinGap => 'admin_native_ad_min_gap'.tr;
+  static String get adminNativeAdMinGapHint =>
+      'admin_native_ad_min_gap_hint'.tr;
+  static String get adminNativeAdMaxPerSession =>
+      'admin_native_ad_max_per_session'.tr;
+  static String get adminNativeAdMaxPerSessionHint =>
+      'admin_native_ad_max_per_session_hint'.tr;
+  static String get adminNativeAdCreated => 'admin_native_ad_created'.tr;
+  static String get adminNativeAdAndroid => 'admin_native_ad_android'.tr;
+  static String get adminNativeAdIos => 'admin_native_ad_ios'.tr;
+  static String get adminNativeAdBoth => 'admin_native_ad_both'.tr;
+  static String get adminNativeAdRules => 'admin_native_ad_rules'.tr;
+  static String get adminNativeAdEmergencyPause =>
+      'admin_native_ad_emergency_pause'.tr;
+  static String get adminNativeAdEmergencyPauseDesc =>
+      'admin_native_ad_emergency_pause_desc'.tr;
+  static String get adminNativeAdActiveAds => 'admin_native_ad_active_ads'.tr;
+  static String get adminNativeAdNoAds => 'admin_native_ad_no_ads'.tr;
+  static String get adminNativeAdNoAdsSubtitle =>
+      'admin_native_ad_no_ads_subtitle'.tr;
 }

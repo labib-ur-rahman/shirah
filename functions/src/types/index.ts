@@ -438,3 +438,59 @@ export interface ModeratePostRequest {
   action: "approve" | "reject";
   reason?: string;
 }
+
+// ============================================
+// HOME FEED TYPES
+// ============================================
+export interface FeedMeta {
+  authorId: string | null;
+  adminPinned: boolean;
+  boosted: boolean;
+  adUnitId?: string;
+  platform?: string;
+  emergencyPause?: boolean;
+}
+
+export interface FeedRules {
+  minGap: number;
+  maxPerSession: number;
+}
+
+export interface HomeFeedDocument {
+  feedId: string;
+  type: string;
+  refId: string | null;
+  priority: number;
+  status: string;
+  visibility: string;
+  createdAt: FirebaseFirestore.Timestamp;
+  meta: FeedMeta;
+  rules?: FeedRules;
+}
+
+export interface CreateFeedItemRequest {
+  type: string;
+  refId?: string;
+  priority?: number;
+  visibility?: string;
+  meta?: Partial<FeedMeta>;
+  rules?: FeedRules;
+}
+
+export interface UpdateFeedStatusRequest {
+  feedId: string;
+  status: string;
+  reason?: string;
+}
+
+export interface UpdateFeedPriorityRequest {
+  feedId: string;
+  priority: number;
+}
+
+export interface AdminCreateNativeAdRequest {
+  adUnitId: string;
+  platform: string;
+  minGap?: number;
+  maxPerSession?: number;
+}

@@ -8,19 +8,19 @@ class SvgPath {
   static const String arrowLineRight = 'assets/svg/arrow-line-right.svg';
   static const String arrowLineLeft = 'assets/svg/arrow-line-left.svg';
 
-
-
   /// Tab Bar SVGs
-  static const String tabHomeSelected = "assets/svg/home_selected.svg";
-  static const String tabHomeUnselected = "assets/svg/home.svg";
-  static const String projectsSelected = "assets/svg/projects_selected.svg";
-  static const String projectsUnselected = "assets/svg/projects.svg";
-  static const String shopSelected = "assets/svg/shop_selected.svg";
-  static const String shopUnselected = "assets/svg/shop.svg";
-  static const String notificationSelected = "assets/svg/notification_selected.svg";
-  static const String notificationUnselected = "assets/svg/notification.svg";
-  static const String messageSelected = "assets/svg/message_selected.svg";
-  static const String messageUnselected = "assets/svg/message.svg";
+  static const String tabHomeSelected = "assets/svg/tab-home-fill.svg";
+  static const String tabHomeUnselected = "assets/svg/tab-home-outline.svg";
+  static const String projectsSelected = "assets/svg/tab-projects-fill.svg";
+  static const String projectsUnselected =
+      "assets/svg/tab-projects-outline.svg";
+  static const String shopSelected = "assets/svg/tab-shop-fill.svg";
+  static const String shopUnselected = "assets/svg/tab-shop-outline.svg";
+  static const String notificationSelected = "assets/svg/tab-activity-fill.svg";
+  static const String notificationUnselected =
+      "assets/svg/tab-activity-outline.svg";
+  static const String walletSelected = "assets/svg/tab-wallet-fill.svg";
+  static const String walletUnselected = "assets/svg/tab-wallet-outline.svg";
 
   /// Menu SVGs
   static const String menu = "assets/svg/menu.svg";
@@ -35,5 +35,4 @@ class SvgPath {
   static const String reactAngry = "assets/svg/angry.svg";
 
   static const String icGoogle = "assets/svg/google.svg";
-
 }

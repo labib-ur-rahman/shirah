@@ -112,10 +112,10 @@ class AppRoutes {
   static const String MY_CREATED_JOBS = '/my-created-jobs';
 
   /// Job submissions review (author view)
-  static const String JOB_SUBMISSIONS = '/job-submissions';
+  static const String JOB_SUBMISSIONS = '/job_submissions';
 
   /// Worker submissions (worker's own submission history)
-  static const String WORKER_SUBMISSIONS = '/worker-submissions';
+  static const String WORKER_SUBMISSIONS = '/worker_submissions';
 
   // ==================== Community Routes ====================
   /// Community feed
@@ -148,6 +148,13 @@ class AppRoutes {
 
   /// Notifications
   static const String NOTIFICATIONS = '/notifications';
+
+  // ==================== Admin Panel Routes ====================
+  /// Admin Feed Management
+  static const String ADMIN_FEED_MANAGEMENT = '/admin-feed-management';
+
+  /// Admin Create Native Ad
+  static const String ADMIN_CREATE_NATIVE_AD = '/admin-create-native-ad';
 
   // ==================== Route Getters ====================
   // Core
@@ -213,4 +220,8 @@ class AppRoutes {
   static String getReferralsScreen() => REFERRALS;
   static String getSettingsScreen() => SETTINGS;
   static String getNotificationsScreen() => NOTIFICATIONS;
+
+  // Admin Panel
+  static String getAdminFeedManagementScreen() => ADMIN_FEED_MANAGEMENT;
+  static String getAdminCreateNativeAdScreen() => ADMIN_CREATE_NATIVE_AD;
 }

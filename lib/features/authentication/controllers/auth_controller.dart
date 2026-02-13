@@ -57,7 +57,8 @@ class AuthController extends GetxController {
     _repository.authStateChanges.listen((User? user) {
       firebaseUser.value = user;
     });
-    // _loadLastEmail();
+    // Load saved email and password if "Remember me" was checked
+    _loadSavedCredentials();
   }
 
   @override
@@ -97,8 +98,19 @@ class AuthController extends GetxController {
       LoggerService.debug('User profile: ${result['profile']}');
 
       userProfile.value = result['profile'] ?? {};
-      LocalStorageService.write('lastEmail', emailController.text.trim());
-      LoggerService.info('💾 Last email saved to storage');
+
+      // Save credentials if "Remember me" is checked
+      if (rememberMe.value) {
+        _saveCredentials(
+          email: emailController.text.trim(),
+          password: passwordController.text,
+        );
+        LoggerService.info('💾 Credentials saved for "Remember me"');
+      } else {
+        // Clear saved credentials if "Remember me" is unchecked
+        _clearSavedCredentials();
+        LoggerService.info('🗑️ Saved credentials cleared');
+      }
 
       AppSnackBar.successSnackBar(
         title: AppStrings.success,
@@ -209,7 +221,6 @@ class AuthController extends GetxController {
   /// 5. User cancels screen → sign out + delete auth credential
   Future<void> continueWithGoogle() async {
     try {
-      isLoading.value = true;
       isGoogleSignIn.value = true;
       LoggerService.info('🔐 Starting Google Sign-in flow...');
 
@@ -239,10 +250,9 @@ class AuthController extends GetxController {
         LoggerService.info(
           '📝 Incomplete profile — showing invite code screen',
         );
-        isLoading.value = false;
 
-        // Show non-dismissible screen
-        // Cancel handler inside screen will sign out + delete auth user
+        // Navigate to invite code screen
+        // Loader will be shown on that screen when user submits form
         Get.toNamed(AppRoutes.INVITE_CODE);
       }
     } catch (e) {
@@ -257,7 +267,6 @@ class AuthController extends GetxController {
         );
       }
     } finally {
-      isLoading.value = false;
       isGoogleSignIn.value = false;
     }
   }
@@ -353,10 +362,14 @@ class AuthController extends GetxController {
   // =====================================================================
 
   /// Sign out user
+  /// Note: Saved credentials persist even after logout
+  /// User must explicitly uncheck "Remember Me" to clear them
   Future<void> logout() async {
     try {
       await _repository.signOut();
       userProfile.clear();
+      // DON'T clear remembered credentials here
+      // User can still log back in with saved credentials
       _clearControllers();
 
       AppSnackBar.successSnackBar(
@@ -375,6 +388,65 @@ class AuthController extends GetxController {
   // HELPERS
   // =====================================================================
 
+  /// Load saved credentials from local storage
+  /// Called when login screen initializes
+  void loadSavedCredentials() {
+    _loadSavedCredentials();
+  }
+
+  /// Save credentials when "Remember me" is checked
+  void _saveCredentials({required String email, required String password}) {
+    final lowerEmail = email.toLowerCase().trim();
+    LocalStorageService.write('rememberMe', true);
+    LocalStorageService.write('savedEmail', lowerEmail);
+    LocalStorageService.write('savedPassword', password);
+    LoggerService.info('💾 Credentials saved: email=$lowerEmail, password=***');
+  }
+
+  /// Load saved credentials if "Remember me" was previously checked
+  void _loadSavedCredentials() {
+    try {
+      final rememberMe = LocalStorageService.read<bool>('rememberMe') ?? false;
+      final savedEmail = LocalStorageService.read<String>('savedEmail');
+      final savedPassword = LocalStorageService.read<String>('savedPassword');
+
+      LoggerService.debug(
+        '📖 Loading credentials: rememberMe=$rememberMe, email=$savedEmail, password=${savedPassword != null ? '***' : 'null'}',
+      );
+
+      if (rememberMe && savedEmail != null && savedPassword != null) {
+        emailController.text = savedEmail;
+        passwordController.text = savedPassword;
+        this.rememberMe.value = true;
+        LoggerService.info(
+          '✅ Credentials loaded: ${emailController.text} (Remember Me: ${this.rememberMe.value})',
+        );
+      } else {
+        this.rememberMe.value = false;
+        LoggerService.info(
+          'ℹ️ No saved credentials found (Remember Me was unchecked)',
+        );
+      }
+    } catch (e) {
+      LoggerService.error('Error loading credentials', e);
+      rememberMe.value = false;
+    }
+  }
+
+  /// Clear saved credentials when "Remember me" is unchecked
+  void _clearSavedCredentials() {
+    LocalStorageService.remove('rememberMe');
+    LocalStorageService.remove('savedEmail');
+    LocalStorageService.remove('savedPassword');
+    LoggerService.info('🗑️ All saved credentials cleared');
+  }
+
+  /// Public method to clear saved credentials (for user settings/logout button)
+  void clearRememberMe() {
+    _clearSavedCredentials();
+    rememberMe.value = false;
+  }
+
   /// Clear all controllers
   void _clearControllers() {
     emailController.clear();
@@ -386,7 +458,7 @@ class AuthController extends GetxController {
     inviteCodeController.clear();
   }
 
-  /// Load last email from storage
+  /// Load last email from storage (legacy method)
   void loadLastEmail() {
     final lastEmail = LocalStorageService.read<String>('lastEmail');
     if (lastEmail != null && lastEmail.isNotEmpty) {
