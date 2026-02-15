@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shirah/core/services/image_compression_service.dart';
 import 'package:shirah/core/services/logger_service.dart';
 import 'package:shirah/data/models/micro_job/job_submission_model.dart';
 import 'package:shirah/data/models/micro_job/micro_job_model.dart';
@@ -128,16 +129,23 @@ class MicroJobController extends GetxController {
       final List<XFile> images = await _picker.pickMultiImage(
         maxWidth: 1920,
         maxHeight: 1920,
-        imageQuality: 85,
       );
       if (images.isNotEmpty) {
         if (proofImages.length + images.length > 5) {
           Get.snackbar('Limit', 'Maximum 5 proof images allowed');
           return;
         }
-        proofImages.addAll(images.map((x) => File(x.path)));
+
+        EasyLoading.show(status: 'Compressing images...');
+        // Compress all selected images
+        final compressedFiles = await ImageCompressionService().compressImages(
+          images.map((x) => File(x.path)).toList(),
+        );
+        proofImages.addAll(compressedFiles);
+        EasyLoading.dismiss();
       }
     } catch (e) {
+      EasyLoading.dismiss();
       LoggerService.error('Failed to pick proof images', e);
       Get.snackbar('Error', 'Failed to pick images');
     }

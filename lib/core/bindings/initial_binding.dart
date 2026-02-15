@@ -20,8 +20,6 @@ import 'package:shirah/features/personalization/onboarding/controllers/theme_con
 import 'package:shirah/features/profile/controllers/user_controller.dart';
 import 'package:shirah/features/rewards/controllers/reward_controller.dart';
 import 'package:shirah/features/wallet/controllers/wallet_controller.dart';
-import 'package:shirah/modules/admins/home_feed/controllers/admin_feed_controller.dart';
-import 'package:shirah/modules/admins/home_feed/repositories/admin_feed_repository.dart';
 
 /// Initial Binding - Sets up initial dependencies when app starts
 /// This binding is called when the app launches and sets up global controllers
@@ -106,11 +104,5 @@ class InitialBinding extends Bindings {
       fenix: true,
     );
 
-    // ==================== Admin Panel ====================
-    // Admin Feed Repository - Cloud Functions operations for feed management
-    Get.put<AdminFeedRepository>(AdminFeedRepository(), permanent: true);
-
-    // Admin Feed Controller - Feed management state
-    Get.lazyPut<AdminFeedController>(() => AdminFeedController(), fenix: true);
   }
 }

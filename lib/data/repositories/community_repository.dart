@@ -62,15 +62,20 @@ class CommunityRepository extends GetxController {
         imageUrl = await _uploadPostImage(imageFile);
       }
 
-      // Build post data
+      // Get document reference with auto-generated ID
+      final docRef = _postsRef.doc();
+
+      // Build post data with postId field
       final postData = {
+        'postId': docRef.id, // Store document ID as a field
         'author': currentAuthor.toMap(),
         'content': {
           'text': text,
           'images': imageUrl != null ? [imageUrl] : [],
         },
         'privacy': privacy,
-        'status': PostStatus.pending, // PENDING by default, requires admin approval
+        'status':
+            PostStatus.pending, // PENDING by default, requires admin approval
         'reactionSummary': {
           'total': 0,
           'like': 0,
@@ -85,7 +90,7 @@ class CommunityRepository extends GetxController {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      final docRef = await _postsRef.add(postData);
+      await docRef.set(postData);
       LoggerService.info('✅ Post created: ${docRef.id}');
       return docRef.id;
     } catch (e) {
@@ -98,12 +103,15 @@ class CommunityRepository extends GetxController {
   Future<String> _uploadPostImage(File imageFile) async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = 'posts/$_currentUid/$timestamp.jpg';
+      // Use .webp extension for compressed images
+      final path = 'posts/$_currentUid/$timestamp.webp';
       final ref = _storage.ref().child(path);
 
-      final uploadTask = await ref.putFile(
-        imageFile,
-        SettableMetadata(contentType: 'image/jpeg'),
+      // Read file as bytes and upload with WebP content type
+      final bytes = await imageFile.readAsBytes();
+      final uploadTask = await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/webp'),
       );
 
       return await uploadTask.ref.getDownloadURL();

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shirah/core/services/image_compression_service.dart';
 import 'package:shirah/core/services/logger_service.dart';
 import 'package:shirah/data/models/community/community_post_model.dart';
 import 'package:shirah/data/models/community/post_author_model.dart';
@@ -49,12 +50,17 @@ class CreatePostController extends GetxController {
         source: ImageSource.gallery,
         maxWidth: 1920,
         maxHeight: 1920,
-        imageQuality: 85,
       );
       if (image != null) {
-        selectedImage.value = File(image.path);
+        EasyLoading.show(status: 'Compressing image...');
+        final compressedFile = await ImageCompressionService().compressImage(
+          File(image.path),
+        );
+        selectedImage.value = compressedFile;
+        EasyLoading.dismiss();
       }
     } catch (e) {
+      EasyLoading.dismiss();
       LoggerService.error('Failed to pick image', e);
       Get.snackbar('Error', 'Failed to pick image');
     }
@@ -67,12 +73,17 @@ class CreatePostController extends GetxController {
         source: ImageSource.camera,
         maxWidth: 1920,
         maxHeight: 1920,
-        imageQuality: 85,
       );
       if (image != null) {
-        selectedImage.value = File(image.path);
+        EasyLoading.show(status: 'Compressing image...');
+        final compressedFile = await ImageCompressionService().compressImage(
+          File(image.path),
+        );
+        selectedImage.value = compressedFile;
+        EasyLoading.dismiss();
       }
     } catch (e) {
+      EasyLoading.dismiss();
       LoggerService.error('Failed to capture image', e);
       Get.snackbar('Error', 'Failed to capture image');
     }

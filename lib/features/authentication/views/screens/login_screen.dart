@@ -8,6 +8,7 @@ import 'package:shirah/core/common/widgets/buttons/gradient_action_button.dart';
 import 'package:shirah/core/common/widgets/popups/full_screen_loader.dart';
 import 'package:shirah/core/common/widgets/text_fields/app_text_field.dart';
 import 'package:shirah/core/localization/app_string_localizations.dart';
+import 'package:shirah/core/utils/constants/image_path.dart';
 import 'package:shirah/core/utils/constants/lottie_path.dart';
 import 'package:shirah/core/utils/validators/app_validator.dart';
 import 'package:shirah/features/authentication/controllers/auth_controller.dart';
@@ -295,10 +296,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
-      child: Icon(
-        Iconsax.shield_tick5,
-        size: 40.sp,
-        color: const Color(0xFF006AED),
+      child: Image.asset(
+        ImagePath.appLogo,
+        width: 40.sp,
+        height: 40.sp,
       ),
     );
   }

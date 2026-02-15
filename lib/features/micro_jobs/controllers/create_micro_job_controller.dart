@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shirah/core/services/image_compression_service.dart';
 import 'package:shirah/core/services/logger_service.dart';
 import 'package:shirah/data/repositories/micro_job_repository.dart';
 import 'package:shirah/features/profile/controllers/user_controller.dart';
@@ -111,12 +113,18 @@ class CreateMicroJobController extends GetxController {
         source: ImageSource.gallery,
         maxWidth: 1920,
         maxHeight: 1920,
-        imageQuality: 85,
       );
       if (image != null) {
-        coverImage.value = File(image.path);
+        EasyLoading.show(status: 'Compressing image...');
+        // Compress image to WebP with 50% quality
+        final compressedFile = await ImageCompressionService().compressImage(
+          File(image.path),
+        );
+        coverImage.value = compressedFile;
+        EasyLoading.dismiss();
       }
     } catch (e) {
+      EasyLoading.dismiss();
       LoggerService.error('Failed to pick cover image', e);
       Get.snackbar('Error', 'Failed to pick image');
     }

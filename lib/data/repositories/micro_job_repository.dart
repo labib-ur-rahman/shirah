@@ -25,15 +25,19 @@ class MicroJobRepository extends GetxController {
   // ==================== JOB CREATION ====================
 
   /// Upload cover image to Firebase Storage
+  /// Handles WebP compressed images with proper content type
   Future<String> uploadJobCoverImage(File imageFile) async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = 'jobs/$_currentUid/cover_$timestamp.jpg';
+      // Use .webp extension for compressed images
+      final path = 'jobs/$_currentUid/cover_$timestamp.webp';
       final ref = _storage.ref().child(path);
 
-      final uploadTask = await ref.putFile(
-        imageFile,
-        SettableMetadata(contentType: 'image/jpeg'),
+      // Read file as bytes and upload with WebP content type
+      final bytes = await imageFile.readAsBytes();
+      final uploadTask = await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/webp'),
       );
 
       return await uploadTask.ref.getDownloadURL();
@@ -135,6 +139,7 @@ class MicroJobRepository extends GetxController {
   // ==================== PROOF SUBMISSION ====================
 
   /// Upload proof images to Firebase Storage
+  /// Upload proof images with WebP compression
   Future<List<String>> uploadProofImages(
     String jobId,
     List<File> images,
@@ -143,12 +148,16 @@ class MicroJobRepository extends GetxController {
       final urls = <String>[];
       for (int i = 0; i < images.length; i++) {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final path = 'job_proofs/$jobId/$_currentUid/proof_${timestamp}_$i.jpg';
+        // Use .webp extension for compressed images
+        final path =
+            'job_proofs/$jobId/$_currentUid/proof_${timestamp}_$i.webp';
         final ref = _storage.ref().child(path);
 
-        final uploadTask = await ref.putFile(
-          images[i],
-          SettableMetadata(contentType: 'image/jpeg'),
+        // Read file as bytes and upload with WebP content type
+        final bytes = await images[i].readAsBytes();
+        final uploadTask = await ref.putData(
+          bytes,
+          SettableMetadata(contentType: 'image/webp'),
         );
 
         final url = await uploadTask.ref.getDownloadURL();
