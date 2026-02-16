@@ -15,6 +15,8 @@ import 'package:shirah/features/main/controllers/main_header_controller.dart';
 import 'package:shirah/features/micro_jobs/controllers/micro_job_controller.dart';
 import 'package:shirah/features/micro_jobs/controllers/my_created_jobs_controller.dart';
 import 'package:shirah/features/micro_jobs/controllers/worker_submissions_controller.dart';
+import 'package:shirah/features/mobile_recharge/controllers/mobile_recharge_controller.dart';
+import 'package:shirah/data/repositories/mobile_recharge_repository.dart';
 import 'package:shirah/features/personalization/onboarding/controllers/style_controller.dart';
 import 'package:shirah/features/personalization/onboarding/controllers/theme_controller.dart';
 import 'package:shirah/features/profile/controllers/user_controller.dart';
@@ -104,5 +106,17 @@ class InitialBinding extends Bindings {
       fenix: true,
     );
 
+    // ==================== Mobile Recharge & Drive Offers ====================
+    // Mobile Recharge Repository - Firebase operations for recharge/offers
+    Get.put<MobileRechargeRepository>(
+      MobileRechargeRepository(),
+      permanent: true,
+    );
+
+    // Mobile Recharge Controller - Recharge and drive offers state management
+    Get.lazyPut<MobileRechargeController>(
+      () => MobileRechargeController(),
+      fenix: true,
+    );
   }
 }

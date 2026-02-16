@@ -286,20 +286,17 @@ class _LoginScreenState extends State<LoginScreen> {
       width: 72.w,
       height: 72.h,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 50,
+            blurRadius: 50.r,
             offset: const Offset(0, 25),
           ),
         ],
       ),
-      child: Image.asset(
-        ImagePath.appLogo,
-        width: 40.sp,
-        height: 40.sp,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.r),
+        child: Image.asset(ImagePath.appLogo),
       ),
     );
   }

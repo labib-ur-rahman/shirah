@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:iconsax/iconsax.dart';
+import 'package:shirah/core/utils/constants/image_path.dart';
 
 /// Splash Logo - Animated app logo/icon with bounce effect
 ///
@@ -113,7 +113,6 @@ class _SplashLogoState extends State<SplashLogo>
         width: 96.w,
         height: 96.h,
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
             BoxShadow(
@@ -130,12 +129,11 @@ class _SplashLogoState extends State<SplashLogo>
 
   /// Build logo icon (replace with your actual logo)
   Widget _buildLogoIcon() {
-    // TODO: Replace with actual app logo from assets
-    // For now, using a placeholder icon
-    return Icon(
-      Iconsax.chart_success,
-      size: 56.sp,
-      color: const Color(0xFF006AED),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16.r),
+      child: Image.asset(
+        ImagePath.appLogo
+      ),
     );
   }
 }

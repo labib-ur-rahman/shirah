@@ -8,7 +8,7 @@
 
 ---
 
-## 📋 Collections Overview (16 Total)
+## 📋 Collections Overview (18 Total)
 
 | # | Collection | Document ID | Purpose |
 |---|-----------|-------------|---------|
@@ -28,6 +28,8 @@
 | 14 | `audit_logs` | `{autoId}` | System-wide audit trail |
 | 15 | `configurations` | `app_settings` | Dynamic business configuration (all runtime constants) |
 | 16 | `home_feeds` | `{feedId}` | Unified home feed index (presentation & ordering layer) |
+| 17 | `mobile_recharge` | `{refid}` | Mobile recharge & drive offer transaction history |
+| 18 | `drive_offer_cache` | `latest` | Cached ECARE drive offer pack list |
 
 ---
 
@@ -283,7 +285,7 @@ wallet_transactions (Collection)
     │                                    # ENUM: "subscription_commission" | "verification_commission"
     │                                    #       "reward_conversion" | "withdrawal"
     │                                    #       "recharge_cashback" | "product_sale"
-    │                                    #       "micro_job" | "admin_credit" | "admin_debit"
+    │                                    #       "micro_job" | "job_post_refund" | "admin_credit" | "admin_debit"
     ├── amount : Number                  # Transaction amount in BDT
     ├── balanceBefore : Number           # Wallet balance before transaction
     ├── balanceAfter : Number            # Wallet balance after transaction
@@ -987,6 +989,179 @@ LIMIT 20
 - Feed items are auto-removed when posts are deleted or jobs are rejected
 - Native Ad feeds are created via admin-only callable function
 - All changes are audit-logged
+
+---
+
+## 1️⃣7️⃣ `mobile_recharge` Collection — Mobile Recharge & Drive Offer Transaction History
+
+> **One document per recharge or offer purchase.** Document ID = `refid` (the unique reference ID sent to ECARE).  
+> Immutable once terminal status reached. Only Cloud Functions write. Flutter reads for transaction history.
+
+```
+mobile_recharge (Collection)
+└── {refid} (Document)                   # Same as refid sent to ECARE (e.g., "SHR_1708089600000_a1b2c3")
+    │
+    ├── refid : String                   # Same as document ID (unique reference)
+    ├── uid : String                     # Firebase Auth UID of the user who initiated
+    │
+    ├── type : String                    # Transaction type
+    │                                    # ENUM: "recharge" | "drive_offer"
+    │
+    ├── phone : String                   # Destination phone number (11 digits, e.g., "01602475999")
+    ├── operator : String                # Operator code sent to ECARE (e.g., "7" for GP)
+    ├── operatorName : String            # Human-readable operator name (e.g., "Grameenphone")
+    ├── numberType : String              # Number type code (e.g., "1")
+    ├── numberTypeName : String          # Human-readable (e.g., "Prepaid")
+    ├── amount : Number                  # Amount in BDT (what user paid)
+    │
+    ├── offer : Map | null               # Drive offer pack details (null for standard recharge)
+    │   ├── offerType : String           # "IN" | "BD" | "MN"
+    │   ├── offerTypeName : String       # "Internet" | "Bundle" | "Minutes"
+    │   ├── minutePack : String          # e.g., "100 Min" or "-"
+    │   ├── internetPack : String        # e.g., "50 GB" or "-"
+    │   ├── smsPack : String             # e.g., "-"
+    │   ├── callratePack : String        # e.g., "-"
+    │   ├── validity : String            # e.g., "30 Days"
+    │   └── commissionAmount : Number    # ECARE commission (BDT), e.g., 2.00
+    │
+    ├── cashback : Map                   # Cashback details
+    │   ├── amount : Number              # Cashback credited (BDT)
+    │   ├── percentage : Number | null   # For recharge: 1.5 (%), for drive offer: null
+    │   ├── source : String              # "recharge_cashback" | "drive_offer_cashback"
+    │   └── credited : Boolean           # Whether cashback has been credited to wallet
+    │
+    ├── ecare : Map                      # Raw ECARE API data
+    │   ├── trxId : String | null        # ECARE transaction ID from recharge response
+    │   ├── rechargeTrxId : String | null # Operator transaction ID from status check
+    │   ├── lastMessage : String         # Last message from ECARE API
+    │   └── pollCount : Number           # Number of status check polls made
+    │
+    ├── wallet : Map                     # Wallet snapshot at time of transaction
+    │   ├── balanceBefore : Number       # Wallet balance before debit
+    │   ├── balanceAfterDebit : Number   # Wallet balance after debit (before cashback)
+    │   └── balanceAfterCashback : Number | null  # Wallet balance after cashback (null if not yet credited)
+    │
+    ├── status : String                  # Overall transaction status (shirah-level)
+    │                                    # ENUM: "initiated"           → wallet debited, ECARE not yet called
+    │                                    #       "submitted"           → ECARE returned RECEIVED
+    │                                    #       "processing"          → ECARE status is PENDING/PROCESSING
+    │                                    #       "success"             → ECARE confirmed SUCCESS + cashback credited
+    │                                    #       "failed"              → ECARE confirmed FAILED
+    │                                    #       "refunded"            → ECARE failed + wallet refunded
+    │                                    #       "pending_verification"→ Max polls reached, needs admin review
+    │
+    ├── ecareStatus : String | null      # Raw ECARE RECHARGE_STATUS (e.g., "SUCCESS", "FAILED", "PENDING")
+    │
+    ├── error : Map | null               # Error details (null if no error)
+    │   ├── code : String                # Error code (e.g., "LOWBALANCE", "DUPLICATE")
+    │   └── message : String             # Error message
+    │
+    ├── walletTransactionId : String | null   # Reference to wallet_transactions doc for the debit
+    ├── cashbackTransactionId : String | null # Reference to wallet_transactions doc for the cashback credit
+    ├── auditLogId : String | null            # Reference to audit_logs doc
+    │
+    ├── createdAt : Timestamp            # When user initiated the transaction
+    ├── submittedAt : Timestamp | null   # When ECARE accepted (RECEIVED)
+    ├── completedAt : Timestamp | null   # When terminal status reached (SUCCESS/FAILED)
+    └── updatedAt : Timestamp            # Last document update
+```
+
+### Query Patterns
+
+```
+# User's recharge history
+WHERE uid == "{userId}"
+ORDER BY createdAt DESC
+LIMIT 20
+
+# Admin: Pending verification
+WHERE status == "pending_verification"
+ORDER BY createdAt ASC
+
+# Admin: Failed transactions
+WHERE status IN ["failed", "refunded"]
+ORDER BY createdAt DESC
+
+# Analytics: Success rate by operator
+WHERE status == "success" AND operator == "7"
+COUNT documents
+```
+
+### Required Composite Indexes
+
+- Collection: `mobile_recharge`
+- Index 1: `uid ASC`, `createdAt DESC`
+- Index 2: `status ASC`, `createdAt ASC`
+- Index 3: `status ASC`, `createdAt DESC`
+
+---
+
+## 1️⃣8️⃣ `drive_offer_cache` Collection — Cached ECARE Offer Pack List
+
+> **Cached ECARE offer pack list.** Single document updated periodically by a scheduled function or on-demand.  
+> Flutter reads via Cloud Function (never directly). Cache TTL: 1 hour.
+
+```
+drive_offer_cache (Collection)
+└── latest (Document)                    # Fixed document ID
+    ├── offers : Array<Map>              # Flattened list of all offers (all operators combined)
+    │   └── [n] : Map                    # Single offer
+    │       ├── operator : String        # "GP" | "BL" | "RB" | "AR" | "TL"
+    │       ├── operatorName : String    # "Grameenphone" | "Banglalink" | "Robi" | "Airtel" | "Teletalk"
+    │       ├── numberType : String      # "1" (Prepaid) | "2" (Postpaid)
+    │       ├── offerType : String       # "IN" | "BD" | "MN"
+    │       ├── offerTypeName : String   # "Internet" | "Bundle" | "Minutes"
+    │       ├── minutePack : String      # e.g., "100 Min" or "-"
+    │       ├── internetPack : String    # e.g., "50 GB" or "-"
+    │       ├── smsPack : String         # e.g., "-"
+    │       ├── callratePack : String    # e.g., "-"
+    │       ├── validity : String        # e.g., "30 Days"
+    │       ├── amount : Number          # Price in BDT
+    │       ├── commissionAmount : Number # Commission (BDT)
+    │       └── status : String          # "A" = Active
+    │
+    ├── operatorCounts : Map             # Quick stats
+    │   ├── GP : Number                  # Total GP offers
+    │   ├── BL : Number                  # Total BL offers
+    │   ├── RB : Number                  # Total RB offers
+    │   ├── AR : Number                  # Total AR offers
+    │   └── TL : Number                  # Total TL offers
+    │
+    ├── totalOffers : Number             # Grand total offers
+    ├── fetchedAt : Timestamp            # When ECARE was last polled
+    └── expiresAt : Timestamp            # Cache expiry time (fetchedAt + 1 hour)
+```
+
+### Cache Strategy
+
+```
+Read Pattern (Cloud Function):
+1. Check if drive_offer_cache/latest exists
+2. If exists → check if expiresAt > now
+   - If valid → return cached offers
+   - If expired → fetch from ECARE, update cache, return
+3. If not exists → fetch from ECARE, create cache, return
+
+Update Pattern (Scheduled Function):
+- Runs every 1 hour
+- Calls ECARE OFFERPACK API
+- Parses and flattens response
+- Updates drive_offer_cache/latest with new data
+- Sets expiresAt = now + 1 hour
+```
+
+### Search Optimization
+
+```
+# Exact amount match (for smart offer detection)
+offers.filter(o => o.amount === 116 && o.operator === "GP")
+
+# Filter by operator + type
+offers.filter(o => o.operator === "GP" && o.offerType === "IN")
+
+# Amount range
+offers.filter(o => o.amount >= 100 && o.amount <= 500)
+```
 
 ---
 

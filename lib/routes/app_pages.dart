@@ -14,6 +14,8 @@ import 'package:shirah/features/micro_jobs/views/screens/job_submissions_screen.
 import 'package:shirah/features/micro_jobs/views/screens/micro_job_screen.dart';
 import 'package:shirah/features/micro_jobs/views/screens/my_created_jobs_screen.dart';
 import 'package:shirah/features/micro_jobs/views/screens/worker_submissions_screen.dart';
+import 'package:shirah/features/mobile_recharge/views/screens/drive_offers_screen.dart';
+import 'package:shirah/features/mobile_recharge/views/screens/mobile_recharge_screen.dart';
 import 'package:shirah/features/personalization/onboarding/views/screens/language_screen.dart';
 import 'package:shirah/features/personalization/onboarding/views/screens/onboarding_screen.dart';
 import 'package:shirah/features/personalization/onboarding/views/screens/style_screen.dart';
@@ -159,5 +161,18 @@ class AppPages {
       transitionDuration: const Duration(milliseconds: 400),
     ),
 
+    // ==================== Mobile Recharge & Drive Offers ====================
+    GetPage(
+      name: AppRoutes.RECHARGE,
+      page: () => const MobileRechargeScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: AppRoutes.OFFERS,
+      page: () => const DriveOffersScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
   ];
 }

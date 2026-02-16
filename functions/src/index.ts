@@ -143,6 +143,19 @@ export {
 } from "./features/micro-jobs/micro-job-operations";
 
 // ============================================
+// MOBILE RECHARGE & DRIVE OFFER FUNCTIONS
+// ============================================
+export {
+  initiateRecharge,
+  getDriveOffers,
+  searchDriveOffers,
+  getRechargeHistory,
+  getEcareBalance,
+  refreshDriveOfferCache,
+  adminRechargeStatus,
+} from "./features/mobile-recharge/mobile-recharge-operations";
+
+// ============================================
 // HOME FEED FUNCTIONS
 // ============================================
 export {
@@ -220,4 +233,13 @@ export {
  * - addPostReply(postId, commentId, text)
  * - moderatePost(postId, action, reason?) [Admin/Moderator]
  * - deleteCommunityPost(postId)
+ *
+ * MOBILE RECHARGE FUNCTIONS (Callable):
+ * - initiateRecharge(phone, operator, numberType, amount, type, offerDetails?)
+ * - getDriveOffers(operator?, offerType?, minAmount?, maxAmount?)
+ * - searchDriveOffers(amount, operator, offerType?)
+ * - getRechargeHistory(limit?, startAfter?)
+ * - getEcareBalance() [Admin]
+ * - refreshDriveOfferCache() [Admin]
+ * - adminRechargeStatus(refid) [Admin]
  */

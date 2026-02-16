@@ -155,13 +155,13 @@ home_feeds (Collection)
 | Field | Why it exists |
 |----|--------------|
 | feedId | Debugging & audit clarity |
-| type | Rendering decision |
-| refId | Links to real content |
-| priority | Ordering bias |
-| status | Kill-switch control |
-| visibility | Privacy enforcement |
+| type | Rendering decision (Determines which UI card to render) |
+| refId | Links to real content  (`posts` / `jobs`) |
+| priority | Ordering bias - Controls feed mixing (jobs > posts) |
+| status | Kill-switch control (Admin moderation without deleting data) |
+| visibility | Privacy enforcement (Privacy filtering at feed level)|
 | createdAt | Time decay |
-| meta | Extension-safe container |
+| meta | Extension-safe container (Algorithm & admin control flags) |
 
 ---
 

@@ -23,7 +23,7 @@ Anyone reading this should be able to:
 
 ### Core Features
 - Post creation with admin review
-- Post reactions (Like, Love, Haha, Sad, Angry)
+- Post reactions (Like, Love, Insightful, Support, Inspiring)
 - Comments on posts
 - Replies on comments (**max level = 1**)
 - Reactions on comments
@@ -67,14 +67,26 @@ ONLY_ME   // Visible only to author
 ### 3.3 ReactionType
 
 ```ts
-LIKE
-LOVE
-HAHA
-SAD
-ANGRY
+LIKE        // 👍
+LOVE        // ❤️
+INSIGHTFUL  // 💡
+SUPPORT     // 🤝
+INSPIRING   // 🔥
 ```
 
 **Why enums:** Prevent invalid data and allow deterministic counters.
+
+All reactions are positive to ensure a healthy community environment.
+
+---
+
+### 3.4 ReportStatus
+
+```ts
+PENDING
+REVIEWED 
+ACTION_TAKEN 
+```
 
 ---
 
@@ -128,12 +140,19 @@ This section defines the **exact structure** you must follow.
     "total": 10,
     "like": 5,
     "love": 3,
-    "haha": 2,
-    "sad": 0,
-    "angry": 0
+    "insightful": 2,
+    "support": 0,
+    "inspiring": 0
   },
 
   "commentCount": 4,              // Includes comments only (not replies)
+
+  "isDeleted": false,
+  "deletedAt": "timestamp",
+  "deletedBy": "uid_123 or admin_123",   // Delete access only has the Post author and Admin
+
+  "reviewNote": "For Community Rules we remove link from the post",  // The note is added by admin
+  "updatedBy": "admin_123",
 
   "createdAt": "timestamp",
   "updatedAt": "timestamp"
@@ -191,12 +210,17 @@ This section defines the **exact structure** you must follow.
     "total": 2,
     "like": 1,
     "love": 1,
-    "haha": 0,
-    "sad": 0,
-    "angry": 0
+    "insightful": 0,
+    "support": 0,
+    "inspiring": 0
   },
 
   "replyCount": 1,
+
+  "isDeleted": false,
+  "deletedAt": "timestamp",
+  "deletedBy": "uid_789 or admin_123",
+
   "createdAt": "timestamp"
 }
 ```
@@ -249,6 +273,11 @@ This section defines the **exact structure** you must follow.
   },
 
   "text": "Thanks for your comment!",
+
+  "isDeleted": false,
+  "deletedAt": "timestamp",
+  "deletedBy": "uid_999 or admin_123",
+  
   "createdAt": "timestamp"
 }
 ```
@@ -256,6 +285,29 @@ This section defines the **exact structure** you must follow.
 **Important rules:**
 - Replies have **NO reactions**
 - Replies cannot have replies
+
+---
+
+### 6.3 Reports Collection (Play Policy Compliance)
+**Path**
+```
+/reports/{reportId}
+```
+
+```json
+{
+  "reportId": "post_123",
+  "targetType": "POST",
+  "targetId": "uid_123",
+  "reportedBy": "uid_999",
+  "reason": "18+ Content",
+  "description": "The report descriptions",
+  "status": "ACTION_TAKEN",          // ReportStatus enum
+  "createdAt": "timestamp"
+}
+```
+
+**Note** Users must be able to report community post content.
 
 ---
 
@@ -375,6 +427,26 @@ Admin can:
 
 ---
 
+### 8.3. Soft Delete System
+
+Instead of deleting documents permanently:
+
+```json
+"isDeleted": true, 
+"deletedAt": "timestamp" 
+"deletedBy": "uid"
+```
+
+All queries must include: where isDeleted == false
+
+Benefits: 
+- Audit trail 
+- Safe moderation 
+- Data recovery 
+- Analytics integrity
+
+---
+
 ## 9. Flutter UI GUIDELINES
 
 ### Feed Screen
@@ -402,7 +474,35 @@ Admin can:
 
 ---
 
-## 11. Final One-Line Summary
+## 11. Scalability Strategy
+
+-   Flat collections
+-   Composite indexes
+-   Server-managed counters
+-   Lazy loading
+-   Soft delete
+-   Moderation tools
+
+> Designed to handle millions of reactions and comments.
+
+------------------------------------------------------------------------
+
+## 12. Compliance Checklist
+
+Platform includes: 
+- Admin moderation
+- Report mechanism 
+- Content filtering 
+- Privacy control 
+- Soft delete 
+- No negative reactions 
+- No harassment vectors
+
+> Fully aligned with Google Play UGC policy guidelines.
+
+---
+
+## 13. Final One-Line Summary
 
 > **This system loads fast, scales safely, costs less, and stays compliant—without sacrificing features or control.**
 

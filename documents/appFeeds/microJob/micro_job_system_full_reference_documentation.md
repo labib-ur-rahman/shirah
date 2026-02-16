@@ -77,6 +77,11 @@ JobType = {
 - Needed for fast listing (first load)
 - Contains only **lightweight, queryable fields**
 
+**Path**
+```
+/jobs/{jobId}
+```
+
 ### Structure
 ```json
 {

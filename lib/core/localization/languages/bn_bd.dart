@@ -238,6 +238,12 @@ const Map<String, String> bnBD = {
   'custom_amount': 'কাস্টম পরিমাণ',
   'recharge_success': 'রিচার্জ সফল',
   'recharge_failed': 'রিচার্জ ব্যর্থ',
+  'processing_recharge': 'রিচার্জ প্রক্রিয়াকরণ হচ্ছে...',
+  'confirm_recharge': 'রিচার্জ নিশ্চিত করুন',
+  'recent_history': 'সাম্প্রতিক ইতিহাস',
+  'cashback': 'ক্যাশব্যাক',
+  'prepaid': 'প্রিপেইড',
+  'postpaid': 'পোস্টপেইড',
 
   // ==================== Offers ====================
   'offers': 'অফার',
@@ -249,6 +255,9 @@ const Map<String, String> bnBD = {
   'bundle_offers': 'বান্ডেল অফার',
   'validity': 'মেয়াদ',
   'buy_now': 'এখনই কিনুন',
+  'drive_offers': 'ড্রাইভ অফার',
+  'no_offers_found': 'কোনো অফার পাওয়া যায়নি',
+  'sms_packs': 'এসএমএস প্যাক',
 
   // ==================== Reselling ====================
   'reselling': 'রিসেলিং',

@@ -74,7 +74,9 @@ class QuickActionsSection extends StatelessWidget {
                   bgColor: const Color(0xFFDBEAFE).withValues(alpha: 0.4),
                   iconColor: const Color(0xFF2563EB),
                   isDark: isDark,
-                  onTap: () {},
+                  onTap: () {
+                    Get.toNamed(AppRoutes.RECHARGE);
+                  },
                 ),
                 SizedBox(width: 12.w),
 
@@ -94,11 +96,13 @@ class QuickActionsSection extends StatelessWidget {
                 /// Drive Offers - Indigo
                 _buildQuickActionItem(
                   icon: Iconsax.simcard,
-                  label: 'Drive Offers',
+                  label: AppStrings.driveOffers,
                   bgColor: const Color(0xFFE0E7FF).withValues(alpha: 0.4),
                   iconColor: const Color(0xFF4F46E5),
                   isDark: isDark,
-                  onTap: () {},
+                  onTap: () {
+                    Get.toNamed(AppRoutes.OFFERS);
+                  },
                 ),
                 SizedBox(width: 12.w),
 

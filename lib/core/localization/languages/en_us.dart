@@ -237,6 +237,12 @@ const Map<String, String> enUS = {
   'custom_amount': 'Custom Amount',
   'recharge_success': 'Recharge successful',
   'recharge_failed': 'Recharge failed',
+  'processing_recharge': 'Processing recharge...',
+  'confirm_recharge': 'Confirm Recharge',
+  'recent_history': 'Recent History',
+  'cashback': 'Cashback',
+  'prepaid': 'Prepaid',
+  'postpaid': 'Postpaid',
 
   // ==================== Offers ====================
   'offers': 'Offers',
@@ -248,6 +254,9 @@ const Map<String, String> enUS = {
   'bundle_offers': 'Bundle Offers',
   'validity': 'Validity',
   'buy_now': 'Buy Now',
+  'drive_offers': 'Drive Offers',
+  'no_offers_found': 'No offers found',
+  'sms_packs': 'SMS Packs',
 
   // ==================== Reselling ====================
   'reselling': 'Reselling',

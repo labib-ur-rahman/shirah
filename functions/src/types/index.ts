@@ -494,3 +494,162 @@ export interface AdminCreateNativeAdRequest {
   minGap?: number;
   maxPerSession?: number;
 }
+
+// ============================================
+// MOBILE RECHARGE TYPES
+// ============================================
+
+export interface OfferDetails {
+  offerType: string;
+  offerTypeName: string;
+  minutePack: string;
+  internetPack: string;
+  smsPack: string;
+  callratePack: string;
+  validity: string;
+  commissionAmount: number;
+}
+
+export interface MobileRechargeDocument {
+  refid: string;
+  uid: string;
+  type: "recharge" | "drive_offer";
+  phone: string;
+  operator: string;
+  operatorName: string;
+  numberType: string;
+  numberTypeName: string;
+  amount: number;
+  offer: OfferDetails | null;
+  cashback: {
+    amount: number;
+    percentage: number | null;
+    source: string;
+    credited: boolean;
+  };
+  ecare: {
+    trxId: string | null;
+    rechargeTrxId: string | null;
+    lastMessage: string;
+    pollCount: number;
+  };
+  wallet: {
+    balanceBefore: number;
+    balanceAfterDebit: number;
+    balanceAfterCashback: number | null;
+  };
+  status: string;
+  ecareStatus: string | null;
+  error: { code: string; message: string } | null;
+  walletTransactionId: string | null;
+  cashbackTransactionId: string | null;
+  auditLogId: string | null;
+  createdAt: FirebaseFirestore.Timestamp;
+  submittedAt: FirebaseFirestore.Timestamp | null;
+  completedAt: FirebaseFirestore.Timestamp | null;
+  updatedAt: FirebaseFirestore.Timestamp;
+}
+
+export interface DriveOfferItem {
+  operator: string;
+  operatorName: string;
+  numberType: string;
+  offerType: string;
+  offerTypeName: string;
+  minutePack: string;
+  internetPack: string;
+  smsPack: string;
+  callratePack: string;
+  validity: string;
+  amount: number;
+  commissionAmount: number;
+  status: string;
+}
+
+export interface DriveOfferCacheDocument {
+  offers: DriveOfferItem[];
+  operatorCounts: Record<string, number>;
+  totalOffers: number;
+  fetchedAt: FirebaseFirestore.Timestamp;
+  expiresAt: FirebaseFirestore.Timestamp;
+}
+
+export interface InitiateRechargeRequest {
+  phone: string;
+  operator: string;
+  numberType: string;
+  amount: number;
+  type: "recharge" | "drive_offer";
+  offerDetails?: {
+    offerType: string;
+    minutePack: string;
+    internetPack: string;
+    smsPack: string;
+    callratePack: string;
+    validity: string;
+    commissionAmount: number;
+  };
+}
+
+export interface GetDriveOffersRequest {
+  operator?: string;
+  offerType?: string;
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+export interface GetRechargeHistoryRequest {
+  limit?: number;
+  startAfter?: string;
+}
+
+export interface EcareRechargeResponse {
+  STATUS: string;
+  RECHARGE_STATUS: string;
+  OPERATOR?: string;
+  NUMBER?: string;
+  AMOUNT?: string;
+  TRXID?: string;
+  MESSAGE: string;
+}
+
+export interface EcareStatusResponse {
+  STATUS: string;
+  RECHARGE_STATUS: string;
+  RECHARGE_TRXID?: string;
+  MESSAGE: string;
+}
+
+export interface EcareBalanceResponse {
+  STATUS: string;
+  MAIN_BALANCE?: string;
+  STOCK_BALANCE?: string;
+  COMMISSION_TYPE?: string;
+  COMMISSION_RATE?: string;
+  MESSAGE: string;
+}
+
+export interface EcareOfferPackResponse {
+  STATUS: string;
+  GP?: RawEcareOffer[];
+  BL?: RawEcareOffer[];
+  RB?: RawEcareOffer[];
+  AR?: RawEcareOffer[];
+  TL?: RawEcareOffer[];
+  MESSAGE: string;
+}
+
+export interface RawEcareOffer {
+  _operator: string;
+  _number_type: string;
+  _offer_type: string;
+  _minute_pack: string;
+  _internet_pack: string;
+  _sms_pack: string;
+  _callrate_pack: string;
+  _validity: string;
+  _amount: string;
+  _commission_amount: string;
+  _status: string;
+  _offer_details: string;
+}

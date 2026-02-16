@@ -83,6 +83,9 @@ export const TRANSACTION_SOURCES = {
   REWARD_CONVERSION: "reward_conversion",
   WITHDRAWAL: "withdrawal",
   RECHARGE_CASHBACK: "recharge_cashback",
+  RECHARGE_DEBIT: "recharge_debit",
+  DRIVE_OFFER_CASHBACK: "drive_offer_cashback",
+  RECHARGE_REFUND: "recharge_refund",
   PRODUCT_SALE: "product_sale",
   MICRO_JOB: "micro_job",
   AD_REWARD: "ad_reward",
@@ -133,6 +136,15 @@ export const AUDIT_ACTIONS = {
   FEED_STATUS_CHANGE: "feed.status_change",
   FEED_REMOVE: "feed.remove",
   FEED_PRIORITY_CHANGE: "feed.priority_change",
+  // Mobile Recharge actions
+  RECHARGE_INITIATE: "recharge.initiate",
+  RECHARGE_SUCCESS: "recharge.success",
+  RECHARGE_FAILED: "recharge.failed",
+  RECHARGE_REFUND: "recharge.refund",
+  DRIVE_OFFER_INITIATE: "drive_offer.initiate",
+  DRIVE_OFFER_SUCCESS: "drive_offer.success",
+  DRIVE_OFFER_FAILED: "drive_offer.failed",
+  DRIVE_OFFER_REFUND: "drive_offer.refund",
 } as const;
 
 // ============================================
@@ -164,7 +176,59 @@ export const COLLECTIONS = {
   JOB_SUBMISSIONS: "job_submissions",
   // Home Feed
   HOME_FEEDS: "home_feeds",
+  // Mobile Recharge
+  MOBILE_RECHARGE: "mobile_recharge",
+  DRIVE_OFFER_CACHE: "drive_offer_cache",
 } as const;
+
+// ============================================
+// MOBILE RECHARGE CONSTANTS
+// ============================================
+export const RECHARGE_TYPES = {
+  RECHARGE: "recharge",
+  DRIVE_OFFER: "drive_offer",
+} as const;
+
+export const RECHARGE_STATUS = {
+  INITIATED: "initiated",
+  SUBMITTED: "submitted",
+  PROCESSING: "processing",
+  SUCCESS: "success",
+  FAILED: "failed",
+  REFUNDED: "refunded",
+  PENDING_VERIFICATION: "pending_verification",
+} as const;
+
+export const OPERATOR_MAP: Record<string, { offerCode: string; name: string }> = {
+  "7": { offerCode: "GP", name: "Grameenphone" },
+  "3": { offerCode: "GP", name: "Grameenphone" },
+  "4": { offerCode: "BL", name: "Banglalink" },
+  "9": { offerCode: "BL", name: "Banglalink" },
+  "8": { offerCode: "RB", name: "Robi" },
+  "6": { offerCode: "AR", name: "Airtel" },
+  "5": { offerCode: "TL", name: "Teletalk" },
+};
+
+export const OFFER_TO_RECHARGE_MAP: Record<string, string> = {
+  "GP": "7",
+  "BL": "4",
+  "RB": "8",
+  "AR": "6",
+  "TL": "5",
+};
+
+export const NUMBER_TYPE_MAP: Record<string, string> = {
+  "1": "Prepaid",
+  "2": "Postpaid",
+  "3": "Skitto",
+  "4": "PowerLoad",
+};
+
+export const OFFER_TYPE_MAP: Record<string, string> = {
+  "IN": "Internet",
+  "BD": "Bundle",
+  "MN": "Minutes",
+};
 
 // ============================================
 // HOME FEED CONSTANTS
@@ -224,4 +288,26 @@ export const REACTION_TYPES = {
   INSIGHTFUL: "insightful",
   SUPPORT: "support",
   INSPIRING: "inspiring",
+} as const;
+
+// ============================================
+// ECARE API CONSTANTS
+// ============================================
+export const ECARE_CONFIG = {
+  BASE_URL: "http://118.179.129.98/myportal/api/rechargeapi/recharge_api_thirdparty.php",
+  SERVICES: {
+    RECHARGE: "MRC",
+    STATUS: "MRCSTATUS",
+    BALANCE: "BLCK",
+    OFFER_PACK: "OFFERPACK",
+  },
+  POLL_DELAYS: [5000, 10000, 15000, 30000, 60000, 60000, 60000, 60000, 60000, 60000],
+  MAX_POLLS: 10,
+  HTTP_TIMEOUT: 30000,
+  RECHARGE_MIN_AMOUNT: 20,
+  RECHARGE_MAX_AMOUNT: 5000,
+  CASHBACK_PERCENT: 1.5,
+  MAX_DAILY_RECHARGES: 20,
+  MAX_DAILY_OFFERS: 10,
+  OFFER_CACHE_TTL_MS: 3600000, // 1 hour
 } as const;

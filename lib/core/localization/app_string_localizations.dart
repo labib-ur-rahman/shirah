@@ -234,6 +234,12 @@ class AppStrings {
   static String get customAmount => 'custom_amount'.tr;
   static String get rechargeSuccess => 'recharge_success'.tr;
   static String get rechargeFailed => 'recharge_failed'.tr;
+  static String get processingRecharge => 'processing_recharge'.tr;
+  static String get confirmRecharge => 'confirm_recharge'.tr;
+  static String get recentHistory => 'recent_history'.tr;
+  static String get cashback => 'cashback'.tr;
+  static String get prepaid => 'prepaid'.tr;
+  static String get postpaid => 'postpaid'.tr;
 
   // ==================== Offers ====================
   static String get offers => 'offers'.tr;
@@ -245,6 +251,9 @@ class AppStrings {
   static String get bundleOffers => 'bundle_offers'.tr;
   static String get validity => 'validity'.tr;
   static String get buyNow => 'buy_now'.tr;
+  static String get driveOffers => 'drive_offers'.tr;
+  static String get noOffersFound => 'no_offers_found'.tr;
+  static String get smsPacks => 'sms_packs'.tr;
 
   // ==================== Reselling ====================
   static String get reselling => 'reselling'.tr;
