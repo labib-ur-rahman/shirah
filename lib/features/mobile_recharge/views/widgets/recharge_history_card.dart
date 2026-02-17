@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:shirah/data/models/recharge/recharge_model.dart';
 import 'package:intl/intl.dart';
+import 'package:shirah/core/common/styles/global_text_style.dart';
+import 'package:shirah/core/localization/app_string_localizations.dart';
+import 'package:shirah/core/utils/constants/app_style_colors.dart';
+import 'package:shirah/core/utils/constants/colors.dart';
+import 'package:shirah/data/models/recharge/recharge_model.dart';
 
 /// Recharge history item card
 class RechargeHistoryCard extends StatelessWidget {
@@ -21,15 +25,19 @@ class RechargeHistoryCard extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 10.h),
         padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+          color: AppStyleColors
+              .instance
+              .surface, // Use app style color for better theming
           borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
-            color: isDark ? Colors.white10 : Colors.grey.shade100,
+            color: isDark
+                ? AppColors.white.withValues(alpha: 0.06)
+                : AppColors.grey.withValues(alpha: 0.5),
           ),
         ),
         child: Row(
           children: [
-            // Status icon
+            /// -- Status icon
             Container(
               width: 42.w,
               height: 42.w,
@@ -41,7 +49,7 @@ class RechargeHistoryCard extends StatelessWidget {
             ),
             SizedBox(width: 12.w),
 
-            // Details
+            /// -- Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,18 +59,18 @@ class RechargeHistoryCard extends StatelessWidget {
                     children: [
                       Text(
                         recharge.operatorName,
-                        style: TextStyle(
-                          fontSize: 13.sp,
+                        style: getBoldTextStyle(
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: isDark ? AppColors.white : AppColors.dark,
                         ),
                       ),
                       Text(
                         recharge.formattedAmount,
-                        style: TextStyle(
-                          fontSize: 14.sp,
+                        style: getBoldTextStyle(
+                          fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: isDark ? AppColors.white : AppColors.dark,
                         ),
                       ),
                     ],
@@ -73,9 +81,11 @@ class RechargeHistoryCard extends StatelessWidget {
                     children: [
                       Text(
                         '${recharge.phone} • ${recharge.typeDisplay}',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        style: getTextStyle(
+                          fontSize: 11,
+                          color: isDark
+                              ? AppColors.white.withValues(alpha: 0.54)
+                              : AppColors.darkerGrey,
                         ),
                       ),
                       Container(
@@ -89,8 +99,8 @@ class RechargeHistoryCard extends StatelessWidget {
                         ),
                         child: Text(
                           recharge.displayStatus,
-                          style: TextStyle(
-                            fontSize: 9.sp,
+                          style: getBoldTextStyle(
+                            fontSize: 9,
                             fontWeight: FontWeight.w600,
                             color: _statusColor,
                           ),
@@ -101,20 +111,22 @@ class RechargeHistoryCard extends StatelessWidget {
                   if (recharge.isSuccess && recharge.cashback.amount > 0) ...[
                     SizedBox(height: 3.h),
                     Text(
-                      'Cashback: ${recharge.formattedCashback}',
-                      style: TextStyle(
-                        fontSize: 10.sp,
+                      '${AppStrings.cashback}: ${recharge.formattedCashback}',
+                      style: getBoldTextStyle(
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF16A34A),
+                        color: AppColors.success,
                       ),
                     ),
                   ],
                   SizedBox(height: 2.h),
                   Text(
                     _formatDate(recharge.createdAt),
-                    style: TextStyle(
-                      fontSize: 9.sp,
-                      color: isDark ? Colors.white38 : Colors.grey.shade400,
+                    style: getTextStyle(
+                      fontSize: 9,
+                      color: isDark
+                          ? AppColors.white.withValues(alpha: 0.38)
+                          : AppColors.darkGrey,
                     ),
                   ),
                 ],
@@ -127,9 +139,9 @@ class RechargeHistoryCard extends StatelessWidget {
   }
 
   Color get _statusColor {
-    if (recharge.isSuccess) return const Color(0xFF16A34A);
-    if (recharge.isFailed) return const Color(0xFFDC2626);
-    return const Color(0xFFF59E0B); // pending
+    if (recharge.isSuccess) return AppColors.success;
+    if (recharge.isFailed) return AppColors.error;
+    return AppColors.warning;
   }
 
   IconData get _statusIcon {

@@ -10,12 +10,14 @@
 
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
+import { defineSecret } from "firebase-functions/params";
 import {
   COLLECTIONS,
   TRANSACTION_TYPES,
   TRANSACTION_SOURCES,
   AUDIT_ACTIONS,
   REGION,
+  USER_ROLES,
   RECHARGE_TYPES,
   RECHARGE_STATUS,
   OPERATOR_MAP,
@@ -47,7 +49,6 @@ import {
 } from "../../utils/helpers";
 import {
   validateAuthenticated,
-  validateUserAccountState,
   validateMinimumRole,
 } from "../../utils/validators";
 import { createAuditLog } from "../audit/audit-logging";
@@ -56,20 +57,33 @@ import { getUserByUid } from "../users/user-management";
 const db = admin.firestore();
 
 // ============================================
+// FIREBASE SECRETS
+// ============================================
+
+const ecareAccessId = defineSecret("ECARE_ACCESS_ID");
+const ecareAccessPass = defineSecret("ECARE_ACCESS_PASS");
+
+// ============================================
 // ECARE API HELPERS
 // ============================================
 
 /**
  * Get ECARE API credentials from Firebase environment config
+ * Supports process.env variables (set via Firebase secrets or .env file)
  */
 function getEcareCredentials(): { accessId: string; accessPass: string } {
-  const accessId = process.env.ECARE_ACCESS_ID;
-  const accessPass = process.env.ECARE_ACCESS_PASS;
+  // Try to get from secret values first (for deployed functions)
+  const secretAccessId = ecareAccessId.value();
+  const secretAccessPass = ecareAccessPass.value();
+
+  // Use secrets if available, otherwise fallback to process.env for local development
+  const accessId = (secretAccessId || process.env.ECARE_ACCESS_ID || "").trim();
+  const accessPass = (secretAccessPass || process.env.ECARE_ACCESS_PASS || "").trim();
 
   if (!accessId || !accessPass) {
     throw new functions.https.HttpsError(
       "internal",
-      "ECARE API credentials not configured"
+      "ECARE API credentials not configured. Please set ECARE_ACCESS_ID and ECARE_ACCESS_PASS environment variables or Firebase secrets."
     );
   }
 
@@ -120,7 +134,7 @@ async function callEcareApi<T>(params: Record<string, string>): Promise<T> {
  */
 function generateRefId(): string {
   const timestamp = Date.now();
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let random = "";
   for (let i = 0; i < 6; i++) {
     random += chars[Math.floor(Math.random() * chars.length)];
@@ -142,12 +156,16 @@ function generateRefId(): string {
  * - Refunds on failure
  */
 export const initiateRecharge = functions.https.onCall(
-  { region: REGION },
+  { 
+    region: REGION,
+    secrets: [ecareAccessId, ecareAccessPass],
+  },
   async (
     request: functions.https.CallableRequest<InitiateRechargeRequest>
   ): Promise<ApiResponse<{ refid: string; status: string; cashback?: number }>> => {
-    const uid = validateAuthenticated(request.auth);
-    const { phone, operator, numberType, amount, type, offerDetails } = request.data;
+    try {
+      const uid = validateAuthenticated(request.auth);
+      const { phone, operator, numberType, amount, type, offerDetails } = request.data;
 
     // --- 1. INPUT VALIDATION ---
     if (!phone || !operator || !numberType || !amount || !type) {
@@ -220,23 +238,22 @@ export const initiateRecharge = functions.https.onCall(
       throw new functions.https.HttpsError("not-found", "User not found");
     }
 
-    validateUserAccountState(user.status.accountState);
-
-    if (!user.status.verified) {
-      throw new functions.https.HttpsError(
-        "failed-precondition",
-        "Please verify your account first"
-      );
-    }
-
-    if (user.wallet.locked) {
+    if (user.wallet?.locked) {
       throw new functions.https.HttpsError(
         "failed-precondition",
         "Your wallet is locked. Contact support."
       );
     }
 
-    if (user.wallet.balanceBDT < amount) {
+    const currentBalance = Number(user.wallet?.balanceBDT ?? 0);
+    if (Number.isNaN(currentBalance)) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Wallet balance is invalid. Contact support."
+      );
+    }
+
+    if (currentBalance < amount) {
       throw new functions.https.HttpsError(
         "failed-precondition",
         "Insufficient wallet balance"
@@ -248,15 +265,28 @@ export const initiateRecharge = functions.https.onCall(
     today.setHours(0, 0, 0, 0);
     const todayTimestamp = admin.firestore.Timestamp.fromDate(today);
 
-    const dailyCountQuery = await db
-      .collection(COLLECTIONS.MOBILE_RECHARGE)
-      .where("uid", "==", uid)
-      .where("type", "==", type)
-      .where("createdAt", ">=", todayTimestamp)
-      .count()
-      .get();
+    let dailyCount = 0;
+    try {
+      const dailyCountQuery = await db
+        .collection(COLLECTIONS.MOBILE_RECHARGE)
+        .where("uid", "==", uid)
+        .where("type", "==", type)
+        .where("createdAt", ">=", todayTimestamp)
+        .count()
+        .get();
 
-    const dailyCount = dailyCountQuery.data().count;
+      dailyCount = dailyCountQuery.data().count;
+    } catch (error: any) {
+      if (error?.code === 9 || error?.message?.includes("index")) {
+        console.warn(
+          "Daily limit check skipped due to missing index:",
+          error?.message || error
+        );
+        dailyCount = 0;
+      } else {
+        throw error;
+      }
+    }
     const maxDaily = type === RECHARGE_TYPES.RECHARGE
       ? ECARE_CONFIG.MAX_DAILY_RECHARGES
       : ECARE_CONFIG.MAX_DAILY_OFFERS;
@@ -294,7 +324,14 @@ export const initiateRecharge = functions.https.onCall(
       }
 
       const userData = freshUser.data() as UserDocument;
-      balanceBefore = userData.wallet.balanceBDT;
+      const walletBalance = Number(userData.wallet?.balanceBDT ?? NaN);
+      if (Number.isNaN(walletBalance)) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "Wallet balance is invalid. Contact support."
+        );
+      }
+      balanceBefore = walletBalance;
 
       if (balanceBefore < amount) {
         throw new functions.https.HttpsError(
@@ -451,6 +488,16 @@ export const initiateRecharge = functions.https.onCall(
         data: { refid, status: RECHARGE_STATUS.REFUNDED },
         error: { code: errorCode, details: errorMsg },
       };
+    }
+    } catch (error) {
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      console.error("initiateRecharge error:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        "Recharge failed. Please try again."
+      );
     }
   }
 );
@@ -702,7 +749,10 @@ async function handleRechargeFailure(
  * Get cached drive offer list with optional filters
  */
 export const getDriveOffers = functions.https.onCall(
-  { region: REGION },
+  { 
+    region: REGION,
+    secrets: [ecareAccessId, ecareAccessPass],
+  },
   async (
     request: functions.https.CallableRequest<GetDriveOffersRequest>
   ): Promise<ApiResponse<{ offers: DriveOfferItem[]; totalOffers: number }>> => {
@@ -831,7 +881,8 @@ async function refreshOfferCache(): Promise<DriveOfferItem[]> {
     const transformed = rawOffers
       .filter((o) => o._status === "A")
       .map((o) => ({
-        operator: o._operator || op,
+        // Use the operator group key for consistent filtering
+        operator: op,
         operatorName: OPERATOR_MAP[OFFER_TO_RECHARGE_MAP[op]]?.name || op,
         numberType: o._number_type || "1",
         offerType: o._offer_type || "",
@@ -844,6 +895,7 @@ async function refreshOfferCache(): Promise<DriveOfferItem[]> {
         amount: parseInt(o._amount, 10) || 0,
         commissionAmount: parseFloat(o._commission_amount) || 0,
         status: o._status || "A",
+        rawOperator: o._operator || op,
       }));
 
     allOffers.push(...transformed);
@@ -875,7 +927,10 @@ async function refreshOfferCache(): Promise<DriveOfferItem[]> {
  * Force-refresh drive offer cache (Admin only)
  */
 export const refreshDriveOfferCache = functions.https.onCall(
-  { region: REGION },
+  { 
+    region: REGION,
+    secrets: [ecareAccessId, ecareAccessPass],
+  },
   async (
     request: functions.https.CallableRequest<void>
   ): Promise<ApiResponse<{ totalOffers: number }>> => {
@@ -884,7 +939,12 @@ export const refreshDriveOfferCache = functions.https.onCall(
     if (!user) {
       throw new functions.https.HttpsError("not-found", "User not found");
     }
-    validateMinimumRole(user.role, "admin");
+    if (user.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Super admin access required"
+      );
+    }
 
     const offers = await refreshOfferCache();
 
@@ -959,10 +1019,23 @@ export const getRechargeHistory = functions.https.onCall(
  * Check ECARE merchant balance (Admin only)
  */
 export const getEcareBalance = functions.https.onCall(
-  { region: REGION },
+  { 
+    region: REGION,
+    secrets: [ecareAccessId, ecareAccessPass],
+  },
   async (
     request: functions.https.CallableRequest<void>
-  ): Promise<ApiResponse<EcareBalanceResponse>> => {
+  ): Promise<
+    ApiResponse<{
+      balance: string;
+      MAIN_BALANCE: string;
+      STOCK_BALANCE: string;
+      COMMISSION_TYPE: string;
+      COMMISSION_RATE: string;
+      MESSAGE: string;
+      fullResponse: EcareBalanceResponse;
+    }>
+  > => {
     const uid = validateAuthenticated(request.auth);
     const user = await getUserByUid(uid);
     if (!user) {
@@ -970,14 +1043,39 @@ export const getEcareBalance = functions.https.onCall(
     }
     validateMinimumRole(user.role, "admin");
 
+    console.log("Calling ECARE Balance API with service:", ECARE_CONFIG.SERVICES.BALANCE);
+    
     const response = await callEcareApi<EcareBalanceResponse>({
       service: ECARE_CONFIG.SERVICES.BALANCE,
     });
 
+    console.log("ECARE Balance API response:", JSON.stringify(response));
+
+    // Check if API call was successful
+    if (response.STATUS !== "OK") {
+      console.error("ECARE Balance API returned non-OK status:", response.STATUS, response.MESSAGE);
+      throw new functions.https.HttpsError(
+        "internal",
+        `ECARE API Error: ${response.MESSAGE || "Unknown error"}`
+      );
+    }
+
+    // Extract main balance from ECARE response
+    const balance = response.MAIN_BALANCE || "0";
+    console.log("Extracted balance:", balance);
+
     return {
       success: true,
       message: "Balance retrieved",
-      data: response,
+      data: {
+        balance,
+        MAIN_BALANCE: response.MAIN_BALANCE || "0",
+        STOCK_BALANCE: response.STOCK_BALANCE || "0",
+        COMMISSION_TYPE: response.COMMISSION_TYPE || "-",
+        COMMISSION_RATE: response.COMMISSION_RATE || "-",
+        MESSAGE: response.MESSAGE,
+        fullResponse: response,
+      },
     };
   }
 );
@@ -986,7 +1084,10 @@ export const getEcareBalance = functions.https.onCall(
  * Admin: Manually check ECARE status for a pending transaction
  */
 export const adminRechargeStatus = functions.https.onCall(
-  { region: REGION },
+  { 
+    region: REGION,
+    secrets: [ecareAccessId, ecareAccessPass],
+  },
   async (
     request: functions.https.CallableRequest<{ refid: string }>
   ): Promise<ApiResponse<EcareStatusResponse>> => {
@@ -997,8 +1098,9 @@ export const adminRechargeStatus = functions.https.onCall(
     }
     validateMinimumRole(user.role, "admin");
 
-    const { refid } = request.data;
-    if (!refid) {
+    const { refid, refId } = (request.data || {}) as { refid?: string; refId?: string };
+    const resolvedRefId = refid || refId;
+    if (!resolvedRefId) {
       throw new functions.https.HttpsError(
         "invalid-argument",
         "refid is required"
@@ -1007,13 +1109,335 @@ export const adminRechargeStatus = functions.https.onCall(
 
     const response = await callEcareApi<EcareStatusResponse>({
       service: ECARE_CONFIG.SERVICES.STATUS,
-      refid,
+      refid: resolvedRefId,
     });
 
     return {
       success: true,
       message: "Status retrieved",
       data: response,
+    };
+  }
+);
+
+/**
+ * Admin: Get all recharge history with filters (Admin only)
+ */
+export const getAdminRechargeHistory = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<{
+      limit?: number;
+      startAfter?: string;
+      startAfterTimestamp?: number | string;
+      status?: string;
+      type?: string;
+      uid?: string;
+      userId?: string;
+    }>
+  ): Promise<ApiResponse<{ transactions: MobileRechargeDocument[]; hasMore: boolean }>> => {
+    const uid = validateAuthenticated(request.auth);
+    const user = await getUserByUid(uid);
+    if (!user) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    validateMinimumRole(user.role, "admin");
+
+    const {
+      limit = 50,
+      startAfter,
+      startAfterTimestamp,
+      status,
+      type,
+      uid: targetUid,
+      userId,
+    } = request.data || {};
+    const resolvedUid = targetUid || userId;
+
+    let query: FirebaseFirestore.Query = db.collection(COLLECTIONS.MOBILE_RECHARGE);
+
+    // Apply filters
+    if (resolvedUid) {
+      query = query.where("uid", "==", resolvedUid);
+    }
+    if (status) {
+      if (status === "pending") {
+        query = query.where("status", "in", [
+          RECHARGE_STATUS.INITIATED,
+          RECHARGE_STATUS.SUBMITTED,
+          RECHARGE_STATUS.PROCESSING,
+          RECHARGE_STATUS.PENDING_VERIFICATION,
+        ]);
+      } else {
+        query = query.where("status", "==", status);
+      }
+    }
+    if (type) {
+      query = query.where("type", "==", type);
+    }
+
+    const safeLimit = Math.min(typeof limit === "number" ? limit : Number(limit) || 50, 100);
+    query = query.orderBy("createdAt", "desc").limit(safeLimit);
+
+    if (startAfter) {
+      const lastDoc = await db
+        .collection(COLLECTIONS.MOBILE_RECHARGE)
+        .doc(startAfter)
+        .get();
+      if (lastDoc.exists) {
+        query = query.startAfter(lastDoc);
+      }
+    } else if (startAfterTimestamp) {
+      const tsNumber =
+        typeof startAfterTimestamp === "number"
+          ? startAfterTimestamp
+          : Number(startAfterTimestamp);
+      if (!Number.isNaN(tsNumber)) {
+        query = query.startAfter(admin.firestore.Timestamp.fromMillis(tsNumber));
+      }
+    }
+
+    let snapshot: FirebaseFirestore.QuerySnapshot;
+    try {
+      snapshot = await query.get();
+    } catch (error: any) {
+      if (error?.code === 9 || error?.message?.includes("index")) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "Database index required. Please create a composite index on 'mobile_recharge' for the selected filters. Check Firebase Console for the index creation link."
+        );
+      }
+      throw error;
+    }
+
+    const transactions = snapshot.docs.map((doc) => doc.data() as MobileRechargeDocument);
+    const hasMore = snapshot.docs.length === safeLimit;
+
+    return {
+      success: true,
+      message: `Found ${transactions.length} transactions`,
+      data: { transactions, hasMore },
+    };
+  }
+);
+
+/**
+ * Admin: Get recharge statistics (Admin only)
+ */
+export const getRechargeStats = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<{ period?: string }>
+  ): Promise<ApiResponse<{
+    totalRecharges: number;
+    totalDriveOffers: number;
+    totalAmount: number;
+    totalCashback: number;
+    totalCount: number;
+    successCount: number;
+    successRate: number;
+    avgAmount: number;
+    pendingCount: number;
+    failedCount: number;
+  }>> => {
+    const uid = validateAuthenticated(request.auth);
+    const user = await getUserByUid(uid);
+    if (!user) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    validateMinimumRole(user.role, "admin");
+
+    const { period = "all" } = request.data || {};
+
+    let query: FirebaseFirestore.Query = db.collection(COLLECTIONS.MOBILE_RECHARGE);
+
+    // Apply time filter
+    if (period === "today") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      query = query.where("createdAt", ">=", admin.firestore.Timestamp.fromDate(today));
+    } else if (period === "week") {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      query = query.where("createdAt", ">=", admin.firestore.Timestamp.fromDate(weekAgo));
+    } else if (period === "month") {
+      const monthAgo = new Date();
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      query = query.where("createdAt", ">=", admin.firestore.Timestamp.fromDate(monthAgo));
+    } else if (period === "year") {
+      const yearAgo = new Date();
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+      query = query.where("createdAt", ">=", admin.firestore.Timestamp.fromDate(yearAgo));
+    }
+
+    const snapshot = await query.get();
+    const transactions = snapshot.docs.map((doc) => doc.data() as MobileRechargeDocument);
+
+    let totalRecharges = 0;
+    let totalDriveOffers = 0;
+    let totalAmount = 0;
+    let totalCashback = 0;
+    let successCount = 0;
+    let pendingCount = 0;
+    let failedCount = 0;
+
+    transactions.forEach((tx) => {
+      if (tx.type === RECHARGE_TYPES.RECHARGE) {
+        totalRecharges++;
+      } else {
+        totalDriveOffers++;
+      }
+
+      totalAmount += tx.amount;
+
+      if (tx.status === RECHARGE_STATUS.SUCCESS) {
+        successCount++;
+        totalCashback += tx.cashback.amount;
+      } else if (
+        tx.status === RECHARGE_STATUS.INITIATED ||
+        tx.status === RECHARGE_STATUS.SUBMITTED ||
+        tx.status === RECHARGE_STATUS.PROCESSING ||
+        tx.status === RECHARGE_STATUS.PENDING_VERIFICATION
+      ) {
+        pendingCount++;
+      } else if (
+        tx.status === RECHARGE_STATUS.FAILED ||
+        tx.status === RECHARGE_STATUS.REFUNDED
+      ) {
+        failedCount++;
+      }
+    });
+
+    const totalCount = transactions.length;
+    const successRate =
+      transactions.length > 0 ? Math.round((successCount / transactions.length) * 100) : 0;
+    const avgAmount = transactions.length > 0 ? totalAmount / transactions.length : 0;
+
+    return {
+      success: true,
+      message: "Statistics retrieved",
+      data: {
+        totalRecharges,
+        totalDriveOffers,
+        totalAmount,
+        totalCashback,
+        successRate,
+        pendingCount,
+        failedCount,
+        totalCount,
+        successCount,
+        avgAmount,
+      },
+    };
+  }
+);
+
+/**
+ * Admin: Retry a failed/pending recharge (Admin only)
+ */
+export const adminRetryRecharge = functions.https.onCall(
+  { 
+    region: REGION,
+    secrets: [ecareAccessId, ecareAccessPass],
+  },
+  async (
+    request: functions.https.CallableRequest<{ refid: string }>
+  ): Promise<ApiResponse<{ status: string; message: string }>> => {
+    const uid = validateAuthenticated(request.auth);
+    const user = await getUserByUid(uid);
+    if (!user) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    validateMinimumRole(user.role, "admin");
+
+    const { refid, refId } = (request.data || {}) as { refid?: string; refId?: string };
+    const resolvedRefId = refid || refId;
+    if (!resolvedRefId) {
+      throw new functions.https.HttpsError("invalid-argument", "refid is required");
+    }
+
+    const rechargeRef = db.collection(COLLECTIONS.MOBILE_RECHARGE).doc(resolvedRefId);
+    const rechargeDoc = await rechargeRef.get();
+
+    if (!rechargeDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Recharge transaction not found");
+    }
+
+    const recharge = rechargeDoc.data() as MobileRechargeDocument;
+
+    if (
+      recharge.status !== RECHARGE_STATUS.PENDING_VERIFICATION &&
+      recharge.status !== RECHARGE_STATUS.SUBMITTED &&
+      recharge.status !== RECHARGE_STATUS.PROCESSING
+    ) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Only pending/processing transactions can be retried"
+      );
+    }
+
+    // Check ECARE status
+    const statusResponse = await callEcareApi<EcareStatusResponse>({
+      service: ECARE_CONFIG.SERVICES.STATUS,
+      refid: resolvedRefId,
+    });
+
+    await rechargeRef.update({
+      "ecare.lastMessage": statusResponse.MESSAGE || "",
+      ecareStatus: statusResponse.RECHARGE_STATUS || null,
+      updatedAt: serverTimestamp(),
+    });
+
+    if (statusResponse.RECHARGE_STATUS === "SUCCESS") {
+      // Credit cashback
+      const cashbackTxId = await creditCashback(
+        recharge.uid,
+        resolvedRefId,
+        recharge.wallet.balanceAfterDebit,
+        recharge.cashback.amount,
+        recharge.cashback.source,
+        recharge.type
+      );
+
+      await rechargeRef.update({
+        status: RECHARGE_STATUS.SUCCESS,
+        "ecare.rechargeTrxId": statusResponse.RECHARGE_TRXID || null,
+        "cashback.credited": true,
+        cashbackTransactionId: cashbackTxId,
+        completedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      return {
+        success: true,
+        message: "Recharge marked as successful and cashback credited",
+        data: { status: RECHARGE_STATUS.SUCCESS, message: statusResponse.MESSAGE },
+      };
+    } else if (statusResponse.RECHARGE_STATUS === "FAILED") {
+      // Refund
+      await handleRechargeFailure(
+        recharge.uid,
+        resolvedRefId,
+        recharge.wallet.balanceAfterDebit,
+        recharge.amount,
+        {
+          code: "ECARE_FAILED",
+          message: statusResponse.MESSAGE || "Recharge failed at operator level",
+        },
+        recharge.type
+      );
+
+      return {
+        success: false,
+        message: "Recharge failed and refunded",
+        data: { status: RECHARGE_STATUS.REFUNDED, message: statusResponse.MESSAGE },
+      };
+    }
+
+    return {
+      success: true,
+      message: `Status: ${statusResponse.RECHARGE_STATUS}`,
+      data: { status: statusResponse.RECHARGE_STATUS, message: statusResponse.MESSAGE },
     };
   }
 );

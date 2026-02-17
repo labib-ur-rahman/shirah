@@ -36,6 +36,11 @@ import {
   UpdateFeedStatusRequest,
   UpdateFeedPriorityRequest,
   AdminCreateNativeAdRequest,
+  DeleteFeedItemRequest,
+  ToggleFeedPinRequest,
+  BulkUpdateFeedStatusRequest,
+  EmergencyPauseAdsRequest,
+  GetAdminFeedItemsRequest,
   ApiResponse,
   UserDocument,
 } from "../../types";
@@ -564,16 +569,13 @@ export const updateFeedItemPriority = functions.https.onCall(
 );
 
 /**
- * Admin: Get paginated feed items with filters
+ * Admin: Get paginated feed items with filters and cursor-based pagination
+ * Supports filtering by status, type, and cursor-based pagination for scale
  */
 export const getAdminFeedItems = functions.https.onCall(
   { region: REGION },
   async (
-    request: functions.https.CallableRequest<{
-      limit?: number;
-      status?: string;
-      type?: string;
-    }>
+    request: functions.https.CallableRequest<GetAdminFeedItemsRequest>
   ): Promise<ApiResponse> => {
     const uid = validateAuthenticated(request.auth);
     const data = request.data;
@@ -596,9 +598,10 @@ export const getAdminFeedItems = functions.https.onCall(
       );
     }
 
-    const limit = data?.limit || 50;
+    const limit = Math.min(data?.limit || 50, 100);
     const statusFilter = data?.status;
     const typeFilter = data?.type;
+    const startAfterFeedId = data?.startAfterFeedId;
 
     let query: FirebaseFirestore.Query = db.collection(COLLECTIONS.HOME_FEEDS);
 
@@ -609,20 +612,431 @@ export const getAdminFeedItems = functions.https.onCall(
       query = query.where("type", "==", typeFilter);
     }
 
-    query = query
-      .orderBy("createdAt", "desc")
-      .limit(limit);
+    query = query.orderBy("createdAt", "desc");
+
+    // Cursor-based pagination
+    if (startAfterFeedId) {
+      const cursorDoc = await db
+        .collection(COLLECTIONS.HOME_FEEDS)
+        .doc(startAfterFeedId)
+        .get();
+      if (cursorDoc.exists) {
+        query = query.startAfter(cursorDoc);
+      }
+    }
+
+    query = query.limit(limit + 1); // fetch one extra to determine hasMore
 
     const snapshot = await query.get();
-    const feedItems = snapshot.docs.map((doc) => ({
+    const hasMore = snapshot.docs.length > limit;
+    const docs = hasMore ? snapshot.docs.slice(0, limit) : snapshot.docs;
+
+    const feedItems = docs.map((doc) => ({
       ...doc.data(),
       feedId: doc.id,
     }));
 
+    const lastFeedId = docs.length > 0 ? docs[docs.length - 1].id : null;
+
     return {
       success: true,
       message: `Found ${feedItems.length} feed items`,
-      data: { feeds: feedItems, total: feedItems.length },
+      data: {
+        feeds: feedItems,
+        total: feedItems.length,
+        hasMore,
+        lastFeedId,
+      },
+    } as ApiResponse;
+  }
+);
+
+/**
+ * Admin: Get aggregated feed statistics (counts by type and status)
+ * Uses collection group queries for efficient counting
+ */
+export const getAdminFeedStats = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<void>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+
+    // Verify admin role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const adminRoles = [
+      USER_ROLES.SUPER_ADMIN,
+      USER_ROLES.ADMIN,
+      USER_ROLES.MODERATOR,
+    ];
+    if (!adminRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Insufficient permissions"
+      );
+    }
+
+    // Count all feeds by querying once and aggregating in memory
+    // For 100k feeds this is expensive; use count() aggregation
+    const feedRef = db.collection(COLLECTIONS.HOME_FEEDS);
+
+    // Use Firestore count() aggregation queries (cost: 1 read per 1000 docs counted)
+    const [
+      totalSnap,
+      activeSnap,
+      disabledSnap,
+      hiddenSnap,
+      removedSnap,
+      postSnap,
+      jobSnap,
+      adSnap,
+      pinnedSnap,
+    ] = await Promise.all([
+      feedRef.count().get(),
+      feedRef.where("status", "==", FEED_STATUS.ACTIVE).count().get(),
+      feedRef.where("status", "==", FEED_STATUS.DISABLED).count().get(),
+      feedRef.where("status", "==", FEED_STATUS.HIDDEN).count().get(),
+      feedRef.where("status", "==", FEED_STATUS.REMOVED).count().get(),
+      feedRef
+        .where("type", "==", FEED_ITEM_TYPES.COMMUNITY_POST)
+        .where("status", "==", FEED_STATUS.ACTIVE)
+        .count()
+        .get(),
+      feedRef
+        .where("type", "==", FEED_ITEM_TYPES.MICRO_JOB)
+        .where("status", "==", FEED_STATUS.ACTIVE)
+        .count()
+        .get(),
+      feedRef
+        .where("type", "==", FEED_ITEM_TYPES.NATIVE_AD)
+        .where("status", "==", FEED_STATUS.ACTIVE)
+        .count()
+        .get(),
+      feedRef
+        .where("meta.adminPinned", "==", true)
+        .where("status", "==", FEED_STATUS.ACTIVE)
+        .count()
+        .get(),
+    ]);
+
+    return {
+      success: true,
+      message: "Feed stats retrieved",
+      data: {
+        total: totalSnap.data().count,
+        byStatus: {
+          active: activeSnap.data().count,
+          disabled: disabledSnap.data().count,
+          hidden: hiddenSnap.data().count,
+          removed: removedSnap.data().count,
+        },
+        byType: {
+          communityPost: postSnap.data().count,
+          microJob: jobSnap.data().count,
+          nativeAd: adSnap.data().count,
+        },
+        pinned: pinnedSnap.data().count,
+      },
+    } as ApiResponse;
+  }
+);
+
+/**
+ * Admin: Delete a feed item permanently
+ * Only superAdmin and admin can hard-delete
+ */
+export const deleteFeedItem = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<DeleteFeedItemRequest>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const data = request.data;
+
+    // Verify admin role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const adminRoles = [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN];
+    if (!adminRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can delete feed items"
+      );
+    }
+
+    if (!data.feedId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "feedId is required"
+      );
+    }
+
+    const feedRef = db.collection(COLLECTIONS.HOME_FEEDS).doc(data.feedId);
+    const feedDoc = await feedRef.get();
+    if (!feedDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Feed item not found");
+    }
+
+    const beforeData = feedDoc.data()!;
+
+    await feedRef.delete();
+
+    // Audit log
+    await logFeedAudit(
+      uid,
+      userData.role,
+      AUDIT_ACTIONS.FEED_DELETE,
+      data.feedId,
+      beforeData as Record<string, unknown>,
+      null,
+      { deletedType: beforeData.type }
+    );
+
+    return {
+      success: true,
+      message: "Feed item deleted permanently",
+    } as ApiResponse;
+  }
+);
+
+/**
+ * Admin: Toggle adminPinned flag on a feed item
+ */
+export const toggleFeedPin = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<ToggleFeedPinRequest>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const data = request.data;
+
+    // Verify admin role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const adminRoles = [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN];
+    if (!adminRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can pin feed items"
+      );
+    }
+
+    if (!data.feedId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "feedId is required"
+      );
+    }
+
+    const feedRef = db.collection(COLLECTIONS.HOME_FEEDS).doc(data.feedId);
+    const feedDoc = await feedRef.get();
+    if (!feedDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Feed item not found");
+    }
+
+    const currentData = feedDoc.data()!;
+    const currentPinned = currentData.meta?.adminPinned || false;
+    const newPinned = !currentPinned;
+
+    await feedRef.update({
+      "meta.adminPinned": newPinned,
+      updatedAt: serverTimestamp(),
+    });
+
+    await logFeedAudit(
+      uid,
+      userData.role,
+      AUDIT_ACTIONS.FEED_PIN_TOGGLE,
+      data.feedId,
+      { adminPinned: currentPinned },
+      { adminPinned: newPinned }
+    );
+
+    return {
+      success: true,
+      message: newPinned ? "Feed item pinned" : "Feed item unpinned",
+      data: { pinned: newPinned },
+    } as ApiResponse;
+  }
+);
+
+/**
+ * Admin: Bulk update status of multiple feed items at once
+ * Maximum 25 items per batch to stay within Firestore limits
+ */
+export const bulkUpdateFeedStatus = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<BulkUpdateFeedStatusRequest>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const data = request.data;
+
+    // Verify admin role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const adminRoles = [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN];
+    if (!adminRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can bulk update feed items"
+      );
+    }
+
+    if (!data.feedIds || !Array.isArray(data.feedIds) || data.feedIds.length === 0) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "feedIds array is required and must not be empty"
+      );
+    }
+    if (data.feedIds.length > 25) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Maximum 25 feed items per batch"
+      );
+    }
+    if (!data.status || !isValidFeedStatus(data.status)) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        `Invalid status: ${data.status}`
+      );
+    }
+
+    const batch = db.batch();
+    let updated = 0;
+
+    for (const feedId of data.feedIds) {
+      const feedRef = db.collection(COLLECTIONS.HOME_FEEDS).doc(feedId);
+      const feedDoc = await feedRef.get();
+      if (feedDoc.exists) {
+        batch.update(feedRef, {
+          status: data.status,
+          updatedAt: serverTimestamp(),
+        });
+        updated++;
+      }
+    }
+
+    await batch.commit();
+
+    // Audit log for bulk operation
+    await logFeedAudit(
+      uid,
+      userData.role,
+      AUDIT_ACTIONS.FEED_BULK_STATUS,
+      "bulk",
+      null,
+      { status: data.status, feedIds: data.feedIds },
+      { reason: data.reason || "Bulk status update", count: updated }
+    );
+
+    return {
+      success: true,
+      message: `${updated} feed items updated to ${data.status}`,
+      data: { updated },
+    } as ApiResponse;
+  }
+);
+
+/**
+ * Admin: Emergency pause/unpause all native ad feeds
+ * Sets status to DISABLED (pause) or ACTIVE (unpause) for all NATIVE_AD feeds
+ */
+export const emergencyPauseAds = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<EmergencyPauseAdsRequest>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const data = request.data;
+
+    // Verify admin role (only superAdmin/admin for emergency ops)
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const adminRoles = [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN];
+    if (!adminRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can use emergency pause"
+      );
+    }
+
+    if (data.pause === undefined || data.pause === null) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "pause (true/false) is required"
+      );
+    }
+
+    const targetStatus = data.pause ? FEED_STATUS.DISABLED : FEED_STATUS.ACTIVE;
+    const sourceStatus = data.pause ? FEED_STATUS.ACTIVE : FEED_STATUS.DISABLED;
+
+    // Find all native ad feeds with source status
+    const adFeeds = await db
+      .collection(COLLECTIONS.HOME_FEEDS)
+      .where("type", "==", FEED_ITEM_TYPES.NATIVE_AD)
+      .where("status", "==", sourceStatus)
+      .get();
+
+    if (adFeeds.empty) {
+      return {
+        success: true,
+        message: `No native ad feeds to ${data.pause ? "pause" : "unpause"}`,
+        data: { updated: 0 },
+      } as ApiResponse;
+    }
+
+    // Batch update in chunks of 500
+    const chunks: FirebaseFirestore.DocumentSnapshot[][] = [];
+    for (let i = 0; i < adFeeds.docs.length; i += 500) {
+      chunks.push(adFeeds.docs.slice(i, i + 500));
+    }
+
+    let totalUpdated = 0;
+    for (const chunk of chunks) {
+      const batch = db.batch();
+      for (const doc of chunk) {
+        batch.update(doc.ref, {
+          status: targetStatus,
+          "meta.emergencyPause": data.pause,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      await batch.commit();
+      totalUpdated += chunk.length;
+    }
+
+    // Audit log
+    await logFeedAudit(
+      uid,
+      userData.role,
+      AUDIT_ACTIONS.FEED_EMERGENCY_PAUSE,
+      "all_native_ads",
+      null,
+      { pause: data.pause, status: targetStatus },
+      { reason: data.reason || "Emergency pause", count: totalUpdated }
+    );
+
+    return {
+      success: true,
+      message: `${totalUpdated} native ad feeds ${data.pause ? "paused" : "unpaused"}`,
+      data: { updated: totalUpdated },
     } as ApiResponse;
   }
 );

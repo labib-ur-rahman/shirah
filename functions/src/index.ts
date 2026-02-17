@@ -104,6 +104,7 @@ export {
   getPendingWithdrawals,
   getAdminUserDetails,
   searchUsers,
+  getAllUsers,
 } from "./features/admin/admin-operations";
 
 // ============================================
@@ -125,6 +126,7 @@ export {
   addPostReply,
   moderatePost,
   deleteCommunityPost,
+  adminEditPost,
 } from "./features/community/community-operations";
 
 // ============================================
@@ -133,6 +135,7 @@ export {
 export {
   createMicroJob,
   getAvailableJobs,
+  getAdminJobs,
   getMicroJobDetails,
   getMyCreatedJobs,
   submitJobProof,
@@ -141,6 +144,7 @@ export {
   adminReviewJob,
   getJobSubmissions,
 } from "./features/micro-jobs/micro-job-operations";
+
 
 // ============================================
 // MOBILE RECHARGE & DRIVE OFFER FUNCTIONS
@@ -153,7 +157,11 @@ export {
   getEcareBalance,
   refreshDriveOfferCache,
   adminRechargeStatus,
+  getAdminRechargeHistory,
+  getRechargeStats,
+  adminRetryRecharge,
 } from "./features/mobile-recharge/mobile-recharge-operations";
+
 
 // ============================================
 // HOME FEED FUNCTIONS
@@ -167,6 +175,11 @@ export {
   updateFeedItemStatus,
   updateFeedItemPriority,
   getAdminFeedItems,
+  getAdminFeedStats,
+  deleteFeedItem,
+  toggleFeedPin,
+  bulkUpdateFeedStatus,
+  emergencyPauseAds,
 } from "./features/home-feed/home-feed-operations";
 
 // ============================================
@@ -220,6 +233,7 @@ export {
  * - getPendingWithdrawals(limit?) [Admin]
  * - getAdminUserDetails(targetUid) [Admin]
  * - searchUsers(query, field, limit?) [Admin]
+ * - getAllUsers(page?, limit?) [Admin]
  *
  * CONFIGURATION FUNCTIONS (Callable):
  * - seedConfigurations() [SuperAdmin]
@@ -233,7 +247,8 @@ export {
  * - addPostReply(postId, commentId, text)
  * - moderatePost(postId, action, reason?) [Admin/Moderator]
  * - deleteCommunityPost(postId)
- *
+ * - adminEditPost(postId, text, images[], reviewNote) [Admin/SuperAdmin]
+ * 
  * MOBILE RECHARGE FUNCTIONS (Callable):
  * - initiateRecharge(phone, operator, numberType, amount, type, offerDetails?)
  * - getDriveOffers(operator?, offerType?, minAmount?, maxAmount?)
@@ -242,4 +257,7 @@ export {
  * - getEcareBalance() [Admin]
  * - refreshDriveOfferCache() [Admin]
  * - adminRechargeStatus(refid) [Admin]
+ * - getAdminRechargeHistory(limit?, startAfter?, status?, type?, uid?) [Admin]
+ * - getRechargeStats(period?) [Admin]
+ * - adminRetryRecharge(refid) [Admin]
  */

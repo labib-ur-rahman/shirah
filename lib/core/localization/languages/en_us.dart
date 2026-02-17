@@ -234,7 +234,7 @@ const Map<String, String> enUS = {
   'enter_number': 'Enter mobile number',
   'select_operator': 'Select Operator',
   'select_amount': 'Select Amount',
-  'custom_amount': 'Custom Amount',
+  'custom_amount': 'Amount',
   'recharge_success': 'Recharge successful',
   'recharge_failed': 'Recharge failed',
   'processing_recharge': 'Processing recharge...',

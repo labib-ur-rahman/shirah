@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:shirah/core/common/styles/global_text_style.dart';
 import 'package:shirah/core/localization/app_string_localizations.dart';
 import 'package:shirah/core/utils/constants/app_style_colors.dart';
+import 'package:shirah/core/utils/constants/colors.dart';
 import 'package:shirah/data/models/recharge/drive_offer_model.dart';
 import 'package:shirah/features/mobile_recharge/controllers/mobile_recharge_controller.dart';
 import 'package:shirah/features/mobile_recharge/views/widgets/drive_offer_card.dart';
@@ -17,9 +19,9 @@ class DriveOffersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppStyleColors.instance;
-    final isDark = colors.isDarkMode;
-    final controller = Get.find<MobileRechargeController>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final controller = MobileRechargeController.instance;
+    final appStyleColors = AppStyleColors.instance;
 
     // Load offers on screen open
     if (controller.driveOffers.isEmpty) {
@@ -27,10 +29,9 @@ class DriveOffersScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0F0F1A)
-          : const Color(0xFFF8F9FB),
-      appBar: _buildAppBar(isDark),
+      backgroundColor:
+          appStyleColors.background, // Use app style background color
+      appBar: _buildAppBar(isDark, appStyleColors),
       body: Column(
         children: [
           /// -- Operator Filter
@@ -57,7 +58,7 @@ class DriveOffersScreen extends StatelessWidget {
 
               return RefreshIndicator(
                 onRefresh: controller.fetchDriveOffers,
-                color: const Color(0xFF4B68FF),
+                color: AppColors.primary,
                 child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics(),
@@ -85,25 +86,26 @@ class DriveOffersScreen extends StatelessWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isDark) {
+  PreferredSizeWidget _buildAppBar(bool isDark, AppStyleColors appStyleColors) {
     return AppBar(
       title: Text(
         AppStrings.telecomOffers,
-        style: TextStyle(
-          fontSize: 18.sp,
+        style: getBoldTextStyle(
+          fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : Colors.black87,
+          color: isDark ? AppColors.white : AppColors.dark,
         ),
       ),
       centerTitle: true,
-      backgroundColor: isDark
-          ? const Color(0xFF0F0F1A)
-          : const Color(0xFFF8F9FB),
+      backgroundColor: appStyleColors.primary.withValues(
+        alpha: 0.05,
+      ), // Use app style color for better theming
       elevation: 0,
+      scrolledUnderElevation: 0,
       leading: IconButton(
         icon: Icon(
           Iconsax.arrow_left,
-          color: isDark ? Colors.white : Colors.black87,
+          color: isDark ? AppColors.white : AppColors.dark,
         ),
         onPressed: () => Get.back(),
       ),
@@ -124,22 +126,15 @@ class DriveOffersScreen extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           children: [
             _buildFilterChip(
-              label: 'All',
+              label: AppStrings.viewAll,
               isSelected: selected.isEmpty,
               isDark: isDark,
               onTap: () => controller.filterOffersByOperator(''),
             ),
             SizedBox(width: 8.w),
             ...MobileRechargeController.operators.map((op) {
-              // Map numeric code to letter code for API
-              const codeToLetter = {
-                '1': 'GP',
-                '4': 'BL',
-                '2': 'RB',
-                '3': 'AR',
-                '5': 'TL',
-              };
-              final letterCode = codeToLetter[op['code']!] ?? '';
+              final letterCode =
+                  MobileRechargeController.codeToLetterMap[op['code']!] ?? '';
               return Padding(
                 padding: EdgeInsets.only(right: 8.w),
                 child: _buildFilterChip(
@@ -192,37 +187,44 @@ class DriveOffersScreen extends StatelessWidget {
     Color? color,
     required VoidCallback onTap,
   }) {
-    final chipColor = color ?? const Color(0xFF4B68FF);
+    final chipColor = color ?? AppColors.primary;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: isSelected
-              ? chipColor
-              : isDark
-              ? const Color(0xFF1E1E2E)
-              : Colors.white,
+          color: isSelected ? chipColor : AppStyleColors.instance.surface,
           borderRadius: BorderRadius.circular(10.r),
           border: Border.all(
             color: isSelected
                 ? chipColor
                 : isDark
-                ? Colors.white12
-                : Colors.grey.shade200,
+                ? AppColors.white.withValues(alpha: 0.08)
+                : AppColors.grey,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: chipColor.withValues(alpha: 0.18),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-            color: isSelected
-                ? Colors.white
-                : isDark
-                ? Colors.white54
-                : Colors.grey.shade700,
+        child: Center(
+          child: Text(
+            label,
+            style: getBoldTextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                  ? AppColors.white
+                  : isDark
+                  ? AppColors.white.withValues(alpha: 0.54)
+                  : AppColors.darkerGrey,
+            ),
           ),
         ),
       ),
@@ -237,23 +239,29 @@ class DriveOffersScreen extends StatelessWidget {
           Icon(
             Iconsax.simcard,
             size: 64.sp,
-            color: isDark ? Colors.white24 : Colors.grey.shade300,
+            color: isDark
+                ? AppColors.white.withValues(alpha: 0.16)
+                : AppColors.grey,
           ),
           SizedBox(height: 16.h),
           Text(
-            'No offers available',
-            style: TextStyle(
-              fontSize: 16.sp,
+            AppStrings.noOffersFound,
+            style: getBoldTextStyle(
+              fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white38 : Colors.grey.shade500,
+              color: isDark
+                  ? AppColors.white.withValues(alpha: 0.38)
+                  : AppColors.darkGrey,
             ),
           ),
           SizedBox(height: 6.h),
           Text(
-            'Try changing the filter or check back later',
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: isDark ? Colors.white24 : Colors.grey.shade400,
+            AppStrings.tryAgain,
+            style: getTextStyle(
+              fontSize: 12,
+              color: isDark
+                  ? AppColors.white.withValues(alpha: 0.24)
+                  : AppColors.darkGrey,
             ),
           ),
         ],
@@ -267,13 +275,13 @@ class DriveOffersScreen extends StatelessWidget {
     DriveOfferModel offer,
     bool isDark,
   ) {
-    final phoneController = TextEditingController();
+    final phoneCtrl = TextEditingController();
 
     Get.bottomSheet(
       Container(
         padding: EdgeInsets.all(20.w),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+          color: isDark ? AppColors.dark : AppColors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
         ),
         child: Column(
@@ -286,7 +294,9 @@ class DriveOffersScreen extends StatelessWidget {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.grey.shade300,
+                  color: isDark
+                      ? AppColors.white.withValues(alpha: 0.16)
+                      : AppColors.grey,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -296,10 +306,10 @@ class DriveOffersScreen extends StatelessWidget {
             // Title
             Text(
               AppStrings.buyNow,
-              style: TextStyle(
-                fontSize: 18.sp,
+              style: getBoldTextStyle(
+                fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black87,
+                color: isDark ? AppColors.white : AppColors.dark,
               ),
             ),
             SizedBox(height: 4.h),
@@ -309,8 +319,8 @@ class DriveOffersScreen extends StatelessWidget {
               padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : const Color(0xFFF3F5FF),
+                    ? AppColors.white.withValues(alpha: 0.05)
+                    : AppColors.primaryBackground,
                 borderRadius: BorderRadius.circular(12.r),
               ),
               child: Row(
@@ -329,8 +339,8 @@ class DriveOffersScreen extends StatelessWidget {
                     ),
                     child: Text(
                       offer.operatorName,
-                      style: TextStyle(
-                        fontSize: 11.sp,
+                      style: getBoldTextStyle(
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: _operatorColor(offer.operator),
                       ),
@@ -341,20 +351,22 @@ class DriveOffersScreen extends StatelessWidget {
                   Expanded(
                     child: Text(
                       offer.shortDescription,
-                      style: TextStyle(
-                        fontSize: 13.sp,
+                      style: getBoldTextStyle(
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white70 : Colors.black87,
+                        color: isDark
+                            ? AppColors.white.withValues(alpha: 0.7)
+                            : AppColors.dark,
                       ),
                     ),
                   ),
                   // Price
                   Text(
                     offer.formattedAmount,
-                    style: TextStyle(
-                      fontSize: 18.sp,
+                    style: getBoldTextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF4B68FF),
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -364,54 +376,72 @@ class DriveOffersScreen extends StatelessWidget {
 
             // Phone number input
             TextField(
-              controller: phoneController,
+              controller: phoneCtrl,
               keyboardType: TextInputType.phone,
               maxLength: 11,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: TextStyle(
-                fontSize: 16.sp,
+              style: getBoldTextStyle(
+                fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : Colors.black87,
+                color: isDark ? AppColors.white : AppColors.dark,
               ),
               decoration: InputDecoration(
                 hintText: AppStrings.enterNumber,
-                hintStyle: TextStyle(
-                  fontSize: 14.sp,
-                  color: isDark ? Colors.white30 : Colors.grey.shade400,
+                hintStyle: getTextStyle(
+                  fontSize: 14,
+                  color: isDark
+                      ? AppColors.white.withValues(alpha: 0.3)
+                      : AppColors.darkGrey,
                 ),
                 counterText: '',
                 prefixIcon: Padding(
                   padding: EdgeInsets.all(12.w),
-                  child: Text(
-                    '+88',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white54 : Colors.grey.shade600,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '+88',
+                        style: getBoldTextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? AppColors.white.withValues(alpha: 0.54)
+                              : AppColors.darkerGrey,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Container(
+                        width: 1,
+                        height: 20.h,
+                        color: isDark
+                            ? AppColors.white.withValues(alpha: 0.12)
+                            : AppColors.grey,
+                      ),
+                    ],
                   ),
                 ),
-                prefixIconConstraints: BoxConstraints(minWidth: 50.w),
+                prefixIconConstraints: BoxConstraints(minWidth: 70.w),
                 filled: true,
-                fillColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                fillColor: isDark ? AppColors.dark : AppColors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14.r),
                   borderSide: BorderSide(
-                    color: isDark ? Colors.white12 : Colors.grey.shade200,
+                    color: isDark
+                        ? AppColors.white.withValues(alpha: 0.08)
+                        : AppColors.grey,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14.r),
                   borderSide: BorderSide(
-                    color: isDark ? Colors.white12 : Colors.grey.shade200,
+                    color: isDark
+                        ? AppColors.white.withValues(alpha: 0.08)
+                        : AppColors.grey,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14.r),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF4B68FF),
-                    width: 1.5,
-                  ),
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                 ),
               ),
             ),
@@ -422,7 +452,7 @@ class DriveOffersScreen extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF16A34A).withValues(alpha: 0.08),
+                  color: AppColors.success.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Row(
@@ -431,15 +461,15 @@ class DriveOffersScreen extends StatelessWidget {
                     Icon(
                       Iconsax.money_recive,
                       size: 14.sp,
-                      color: const Color(0xFF16A34A),
+                      color: AppColors.success,
                     ),
                     SizedBox(width: 6.w),
                     Text(
-                      'You\'ll earn ${offer.formattedCashback} cashback',
-                      style: TextStyle(
-                        fontSize: 12.sp,
+                      '${AppStrings.cashback}: ${offer.formattedCashback}',
+                      style: getBoldTextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF16A34A),
+                        color: AppColors.success,
                       ),
                     ),
                   ],
@@ -458,16 +488,16 @@ class DriveOffersScreen extends StatelessWidget {
                       ? null
                       : () {
                           controller.purchaseDriveOffer(
-                            phone: phoneController.text,
+                            phone: phoneCtrl.text,
                             offer: offer,
                           );
                           Get.back();
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4B68FF),
-                    disabledBackgroundColor: const Color(
-                      0xFF4B68FF,
-                    ).withValues(alpha: 0.5),
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.primary.withValues(
+                      alpha: 0.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14.r),
                     ),
@@ -479,7 +509,7 @@ class DriveOffersScreen extends StatelessWidget {
                           height: 22.w,
                           child: const CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                         )
                       : Row(
@@ -487,16 +517,16 @@ class DriveOffersScreen extends StatelessWidget {
                           children: [
                             Icon(
                               Iconsax.flash_1,
-                              color: Colors.white,
+                              color: AppColors.white,
                               size: 20.sp,
                             ),
                             SizedBox(width: 8.w),
                             Text(
                               '${AppStrings.buyNow} • ${offer.formattedAmount}',
-                              style: TextStyle(
-                                fontSize: 15.sp,
+                              style: getBoldTextStyle(
+                                fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: AppColors.white,
                               ),
                             ),
                           ],
@@ -525,7 +555,7 @@ class DriveOffersScreen extends StatelessWidget {
       case 'TL':
         return const Color(0xFF0051A2);
       default:
-        return Colors.grey;
+        return AppColors.darkGrey;
     }
   }
 }

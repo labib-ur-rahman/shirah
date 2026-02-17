@@ -235,7 +235,7 @@ const Map<String, String> bnBD = {
   'enter_number': 'মোবাইল নম্বর লিখুন',
   'select_operator': 'অপারেটর নির্বাচন করুন',
   'select_amount': 'পরিমাণ নির্বাচন করুন',
-  'custom_amount': 'কাস্টম পরিমাণ',
+  'custom_amount': 'পরিমাণ',
   'recharge_success': 'রিচার্জ সফল',
   'recharge_failed': 'রিচার্জ ব্যর্থ',
   'processing_recharge': 'রিচার্জ প্রক্রিয়াকরণ হচ্ছে...',

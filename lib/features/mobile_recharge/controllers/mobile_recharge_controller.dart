@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -9,7 +11,8 @@ import 'package:shirah/data/models/recharge/recharge_model.dart';
 import 'package:shirah/data/repositories/mobile_recharge_repository.dart';
 
 /// Mobile Recharge Controller - Manages recharge and drive offer flows
-/// Handles phone input, operator selection, amount, offer browsing, and history
+/// Handles phone input, operator selection, amount, offer browsing,
+/// instant offer detection, and recharge history
 class MobileRechargeController extends GetxController {
   static MobileRechargeController get instance => Get.find();
 
@@ -24,8 +27,13 @@ class MobileRechargeController extends GetxController {
   final RxString selectedNumberType = '1'.obs; // 1=Prepaid, 2=Postpaid
   final RxBool isProcessing = false.obs;
   final Rx<RechargeModel?> lastResult = Rx<RechargeModel?>(null);
-  final RxString selectedAmount =
-      ''.obs; // Reactive variable for amount selector
+  final RxString selectedAmount = ''.obs;
+
+  // ==================== Instant Offer Detection State ====================
+  final RxList<DriveOfferModel> matchedOffers = <DriveOfferModel>[].obs;
+  final RxBool isSearchingOffers = false.obs;
+  final RxBool useOfferPack = false.obs;
+  Timer? _searchDebouncer;
 
   // ==================== History State ====================
   final RxList<RechargeModel> rechargeHistory = <RechargeModel>[].obs;
@@ -37,27 +45,47 @@ class MobileRechargeController extends GetxController {
   final RxBool isLoadingOffers = false.obs;
   final RxString selectedOfferOperator = ''.obs;
   final RxString selectedOfferType = ''.obs;
+  final RxString selectedOfferValidity = ''.obs;
 
   // ==================== Operator Definitions ====================
+  /// Operator codes match ECARE API recharge codes
   static const List<Map<String, String>> operators = [
-    {'code': '1', 'name': 'Grameenphone', 'short': 'GP', 'prefix': '017,013'},
+    {'code': '7', 'name': 'Grameenphone', 'short': 'GP', 'prefix': '017,013'},
     {'code': '4', 'name': 'Banglalink', 'short': 'BL', 'prefix': '019,014'},
-    {'code': '2', 'name': 'Robi', 'short': 'RB', 'prefix': '018'},
-    {'code': '3', 'name': 'Airtel', 'short': 'AR', 'prefix': '016'},
+    {'code': '8', 'name': 'Robi', 'short': 'RB', 'prefix': '018'},
+    {'code': '6', 'name': 'Airtel', 'short': 'AR', 'prefix': '016'},
     {'code': '5', 'name': 'Teletalk', 'short': 'TL', 'prefix': '015'},
   ];
 
+  /// Recharge code → Offer operator letter mapping
+  static const Map<String, String> codeToLetterMap = {
+    '7': 'GP',
+    '4': 'BL',
+    '8': 'RB',
+    '6': 'AR',
+    '5': 'TL',
+  };
+
   // ==================== Quick Amount Options ====================
-  static const List<int> quickAmounts = [20, 30, 50, 100, 200, 300, 500, 1000];
+  static const List<int> quickAmounts = [
+    20,
+    30,
+    40,
+    50,
+    100,
+    150,
+    200,
+    300,
+    400,
+    500,
+  ];
 
   // ==================== Offer Types ====================
   static const List<Map<String, String>> offerTypes = [
     {'value': '', 'label': 'All'},
-    {'value': 'Internet', 'label': 'Internet'},
-    {'value': 'Minute', 'label': 'Minutes'},
-    {'value': 'Combo', 'label': 'Combo'},
-    {'value': 'Bundle', 'label': 'Bundle'},
-    {'value': 'SMS', 'label': 'SMS'},
+    {'value': 'IN', 'label': 'Internet'},
+    {'value': 'MN', 'label': 'Minutes'},
+    {'value': 'BD', 'label': 'Bundle'},
   ];
 
   // ==================== Lifecycle ====================
@@ -65,18 +93,13 @@ class MobileRechargeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Auto-detect operator when phone number changes
     phoneController.addListener(_onPhoneChanged);
-    // Update reactive variable when amount changes
     amountController.addListener(_onAmountChanged);
-  }
-
-  void _onAmountChanged() {
-    selectedAmount.value = amountController.text;
   }
 
   @override
   void onClose() {
+    _searchDebouncer?.cancel();
     phoneController.dispose();
     amountController.dispose();
     super.onClose();
@@ -91,16 +114,22 @@ class MobileRechargeController extends GetxController {
       final detected = _detectOperator(prefix);
       if (detected != null && selectedOperator.value != detected) {
         selectedOperator.value = detected;
+        _debouncedOfferSearch();
       }
     }
   }
 
+  void _onAmountChanged() {
+    selectedAmount.value = amountController.text;
+    _debouncedOfferSearch();
+  }
+
   String? _detectOperator(String prefix) {
     const prefixMap = {
-      '017': '1', '013': '1', // GP
+      '017': '7', '013': '7', // GP
       '019': '4', '014': '4', // BL
-      '018': '2', // Robi
-      '016': '3', // Airtel
+      '018': '8', // Robi
+      '016': '6', // Airtel
       '015': '5', // Teletalk
     };
     return prefixMap[prefix];
@@ -108,6 +137,7 @@ class MobileRechargeController extends GetxController {
 
   void selectOperator(String code) {
     selectedOperator.value = code;
+    _debouncedOfferSearch();
   }
 
   void selectNumberType(String type) {
@@ -125,22 +155,38 @@ class MobileRechargeController extends GetxController {
     return op?['name'] ?? '';
   }
 
+  String get operatorShort {
+    final op = operators.firstWhereOrNull(
+      (o) => o['code'] == selectedOperator.value,
+    );
+    return op?['short'] ?? '';
+  }
+
+  /// Get the offer operator letter code (GP, BL, etc.) from numeric code
+  String get offerOperatorCode {
+    return codeToLetterMap[selectedOperator.value] ?? '';
+  }
+
   bool get isFormValid {
     final phone = phoneController.text.replaceAll(RegExp(r'\D'), '');
     final amount = double.tryParse(amountController.text) ?? 0;
-    return phone.length == 11 &&
-        phone.startsWith('01') &&
-        selectedOperator.isNotEmpty &&
-        amount >= 20 &&
-        amount <= 5000 &&
-        amount % 10 == 0;
+
+    if (phone.length != 11 || !phone.startsWith('01')) return false;
+    if (selectedOperator.isEmpty) return false;
+    if (amount < 20 || amount > 5000) return false;
+
+    // If matched offer exists for non-round amount, it's valid
+    if (matchedOffers.isNotEmpty && useOfferPack.value) return true;
+
+    // Regular recharge must be round figure
+    return amount % 10 == 0;
   }
 
   String? get phoneError {
     final phone = phoneController.text.replaceAll(RegExp(r'\D'), '');
     if (phone.isEmpty) return null;
-    if (phone.length < 11) return 'Enter 11-digit number';
-    if (!phone.startsWith('01')) return 'Must start with 01';
+    if (phone.length < 11) return AppStrings.enterNumber;
+    if (!phone.startsWith('01')) return AppStrings.enterNumber;
     return null;
   }
 
@@ -148,11 +194,58 @@ class MobileRechargeController extends GetxController {
     final text = amountController.text;
     if (text.isEmpty) return null;
     final amount = double.tryParse(text);
-    if (amount == null) return 'Invalid amount';
-    if (amount < 20) return 'Minimum ৳20';
-    if (amount > 5000) return 'Maximum ৳5,000';
-    if (amount % 10 != 0) return 'Must end in 0';
+    if (amount == null) return AppStrings.rechargeFailed;
+    if (amount < 20) return 'Min ৳20';
+    if (amount > 5000) return 'Max ৳5,000';
+    if (amount % 10 != 0 && matchedOffers.isEmpty) return 'Must end in 0';
     return null;
+  }
+
+  // ==================== INSTANT OFFER DETECTION ====================
+
+  /// Debounce offer search by 400ms
+  void _debouncedOfferSearch() {
+    _searchDebouncer?.cancel();
+    _searchDebouncer = Timer(const Duration(milliseconds: 400), () {
+      _searchMatchingOffers();
+    });
+  }
+
+  /// Search for matching drive offers when amount & operator are known
+  Future<void> _searchMatchingOffers() async {
+    final amountText = amountController.text;
+    final amount = double.tryParse(amountText);
+    final operatorLetter = offerOperatorCode;
+
+    // Clear if invalid input
+    if (amount == null || amount <= 0 || operatorLetter.isEmpty) {
+      matchedOffers.clear();
+      useOfferPack.value = false;
+      return;
+    }
+
+    try {
+      isSearchingOffers.value = true;
+      final offers = await _repository.searchDriveOffers(
+        amount: amount,
+        operator: operatorLetter,
+      );
+      matchedOffers.assignAll(offers);
+
+      // Default to offer pack when any matching offer exists.
+      // Non-round amounts must use offer pack.
+      useOfferPack.value = offers.isNotEmpty;
+    } catch (e) {
+      LoggerService.error('Offer search failed', e);
+      matchedOffers.clear();
+    } finally {
+      isSearchingOffers.value = false;
+    }
+  }
+
+  /// Toggle whether to use matched offer pack or regular recharge
+  void toggleOfferPack(bool value) {
+    useOfferPack.value = value;
   }
 
   // ==================== INITIATE RECHARGE ====================
@@ -161,7 +254,7 @@ class MobileRechargeController extends GetxController {
     if (!isFormValid) {
       AppSnackBar.warningSnackBar(
         title: AppStrings.rechargeFailed,
-        message: 'Please fill all fields correctly',
+        message: AppStrings.enterNumber,
       );
       return;
     }
@@ -169,9 +262,15 @@ class MobileRechargeController extends GetxController {
     final phone = phoneController.text.replaceAll(RegExp(r'\D'), '');
     final amount = double.parse(amountController.text);
 
+    // If using offer pack, delegate to offer purchase
+    if (useOfferPack.value && matchedOffers.isNotEmpty) {
+      await purchaseDriveOffer(phone: phone, offer: matchedOffers.first);
+      return;
+    }
+
     try {
       isProcessing.value = true;
-      EasyLoading.show(status: 'Processing recharge...');
+      EasyLoading.show(status: AppStrings.processingRecharge);
 
       final result = await _repository.initiateRecharge(
         phone: phone,
@@ -191,13 +290,11 @@ class MobileRechargeController extends GetxController {
         final cashback = data?['cashback'] as num?;
         AppSnackBar.successSnackBar(
           title: AppStrings.rechargeSuccess,
-          message: cashback != null
-              ? '$message Cashback: ৳${cashback.toStringAsFixed(2)}'
+          message: cashback != null && cashback > 0
+              ? '$message ${AppStrings.cashback}: ৳${cashback.toStringAsFixed(2)}'
               : message,
         );
-        // Clear form
         _clearForm();
-        // Refresh history
         fetchRechargeHistory();
       } else {
         AppSnackBar.errorSnackBar(
@@ -208,10 +305,7 @@ class MobileRechargeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
       LoggerService.error('Recharge failed', e);
-      AppSnackBar.errorSnackBar(
-        title: AppStrings.rechargeFailed,
-        message: e.toString(),
-      );
+      _handleRechargeError(e);
     } finally {
       isProcessing.value = false;
     }
@@ -227,14 +321,14 @@ class MobileRechargeController extends GetxController {
     if (cleanPhone.length != 11 || !cleanPhone.startsWith('01')) {
       AppSnackBar.warningSnackBar(
         title: AppStrings.rechargeFailed,
-        message: 'Please enter a valid phone number',
+        message: AppStrings.enterNumber,
       );
       return;
     }
 
     try {
       isProcessing.value = true;
-      EasyLoading.show(status: 'Activating offer...');
+      EasyLoading.show(status: AppStrings.processingRecharge);
 
       final result = await _repository.initiateRecharge(
         phone: cleanPhone,
@@ -255,6 +349,8 @@ class MobileRechargeController extends GetxController {
           title: AppStrings.rechargeSuccess,
           message: message,
         );
+        _clearForm();
+        fetchRechargeHistory();
       } else {
         AppSnackBar.errorSnackBar(
           title: AppStrings.rechargeFailed,
@@ -264,10 +360,7 @@ class MobileRechargeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
       LoggerService.error('Drive offer purchase failed', e);
-      AppSnackBar.errorSnackBar(
-        title: AppStrings.rechargeFailed,
-        message: e.toString(),
-      );
+      _handleRechargeError(e);
     } finally {
       isProcessing.value = false;
     }
@@ -328,7 +421,17 @@ class MobileRechargeController extends GetxController {
             : null,
       );
 
-      driveOffers.assignAll(offers);
+      final validityFilter = selectedOfferValidity.value.trim();
+      if (validityFilter.isEmpty) {
+        driveOffers.assignAll(offers);
+      } else {
+        final needle = validityFilter.toLowerCase();
+        driveOffers.assignAll(
+          offers.where(
+            (o) => o.validity.toLowerCase().contains(needle),
+          ),
+        );
+      }
     } catch (e) {
       LoggerService.error('Failed to fetch drive offers', e);
     } finally {
@@ -346,10 +449,37 @@ class MobileRechargeController extends GetxController {
     fetchDriveOffers();
   }
 
+  void filterOffersByValidity(String validity) {
+    selectedOfferValidity.value = validity;
+    fetchDriveOffers();
+  }
+
   void clearOfferFilters() {
     selectedOfferOperator.value = '';
     selectedOfferType.value = '';
+    selectedOfferValidity.value = '';
     fetchDriveOffers();
+  }
+
+  // ==================== ERROR HANDLING ====================
+
+  void _handleRechargeError(dynamic error) {
+    String message = error.toString();
+
+    // Handle Firebase Functions timeout per implementation guide
+    if (message.contains('deadline-exceeded') ||
+        message.contains('DEADLINE_EXCEEDED')) {
+      AppSnackBar.warningSnackBar(
+        title: AppStrings.processingRecharge,
+        message: 'Request submitted. Status will update shortly.',
+      );
+      return;
+    }
+
+    AppSnackBar.errorSnackBar(
+      title: AppStrings.rechargeFailed,
+      message: message,
+    );
   }
 
   // ==================== HELPERS ====================
@@ -359,6 +489,8 @@ class MobileRechargeController extends GetxController {
     amountController.clear();
     selectedOperator.value = '';
     selectedNumberType.value = '1';
+    matchedOffers.clear();
+    useOfferPack.value = false;
   }
 
   void resetAll() {

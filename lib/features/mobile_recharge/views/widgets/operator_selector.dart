@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:shirah/core/common/styles/global_text_style.dart';
 import 'package:shirah/core/utils/constants/app_style_colors.dart';
+import 'package:shirah/core/utils/constants/colors.dart';
 import 'package:shirah/features/mobile_recharge/controllers/mobile_recharge_controller.dart';
 
 /// Operator selector widget - Horizontal list of Bangladesh operators
@@ -10,14 +12,14 @@ class OperatorSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppStyleColors.instance;
-    final isDark = colors.isDarkMode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final controller = MobileRechargeController.instance;
+    final appStyleColors = AppStyleColors.instance;
 
     return Obx(() {
       final selected = controller.selectedOperator.value;
       return SizedBox(
-        height: 72.h,
+        height: 76.h,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
@@ -27,6 +29,7 @@ class OperatorSelector extends StatelessWidget {
             final op = MobileRechargeController.operators[index];
             final isSelected = selected == op['code'];
             return _buildOperatorChip(
+              appStyleColors: appStyleColors,
               name: op['short']!,
               fullName: op['name']!,
               isSelected: isSelected,
@@ -45,28 +48,28 @@ class OperatorSelector extends StatelessWidget {
     required bool isSelected,
     required bool isDark,
     required VoidCallback onTap,
+    required AppStyleColors appStyleColors,
   }) {
+    final opColor = _operatorColor(name);
     final bgColor = isSelected
-        ? _operatorColor(name)
-        : isDark
-        ? const Color(0xFF1E1E2E)
-        : Colors.white;
+        ? opColor
+        : appStyleColors.primary.withValues(alpha: 0.05);
     final textColor = isSelected
-        ? Colors.white
+        ? AppColors.white
         : isDark
-        ? Colors.white70
-        : Colors.black87;
+        ? AppColors.white
+        : AppColors.dark;
     final borderColor = isSelected
-        ? _operatorColor(name)
+        ? opColor
         : isDark
-        ? Colors.white12
-        : Colors.grey.shade200;
+        ? AppColors.white.withValues(alpha: 0.08)
+        : AppColors.grey;
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 60.w,
+        width: 62.w,
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(14.r),
@@ -74,7 +77,7 @@ class OperatorSelector extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: _operatorColor(name).withValues(alpha: 0.3),
+                    color: opColor.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -86,8 +89,8 @@ class OperatorSelector extends StatelessWidget {
           children: [
             Text(
               name,
-              style: TextStyle(
-                fontSize: 15.sp,
+              style: getBoldTextStyle(
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: textColor,
               ),
@@ -95,8 +98,8 @@ class OperatorSelector extends StatelessWidget {
             SizedBox(height: 2.h),
             Text(
               _shortLabel(name),
-              style: TextStyle(
-                fontSize: 8.sp,
+              style: getTextStyle(
+                fontSize: 8,
                 fontWeight: FontWeight.w500,
                 color: textColor.withValues(alpha: 0.7),
               ),
@@ -111,17 +114,17 @@ class OperatorSelector extends StatelessWidget {
   Color _operatorColor(String op) {
     switch (op) {
       case 'GP':
-        return const Color(0xFF1C6B20); // Green
+        return const Color(0xFF1C6B20);
       case 'BL':
-        return const Color(0xFFE87C03); // Orange
+        return const Color(0xFFE87C03);
       case 'RB':
-        return const Color(0xFFD41A29); // Red
+        return const Color(0xFFD41A29);
       case 'AR':
-        return const Color(0xFFE11C1C); // Red
+        return const Color(0xFFE11C1C);
       case 'TL':
-        return const Color(0xFF0051A2); // Blue
+        return const Color(0xFF0051A2);
       default:
-        return Colors.grey;
+        return AppColors.darkGrey;
     }
   }
 

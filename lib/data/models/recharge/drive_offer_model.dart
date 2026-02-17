@@ -94,8 +94,8 @@ class DriveOfferModel {
 
   /// Numeric operator code for ECARE API
   String get numericOperatorCode {
-    const mapping = {'GP': '1', 'BL': '4', 'RB': '2', 'AR': '3', 'TL': '5'};
-    return mapping[operator] ?? '1';
+    const mapping = {'GP': '7', 'BL': '4', 'RB': '8', 'AR': '6', 'TL': '5'};
+    return mapping[operator] ?? '7';
   }
 
   /// Check if offer is internet-focused

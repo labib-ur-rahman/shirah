@@ -1,0 +1,628 @@
+/**
+ * SHIRAH Cloud Functions - Home Feed Module
+ * ============================================
+ *
+ * Responsibilities (per documentation v3):
+ * MUST DO:
+ *   - Auto-create feed items when posts/jobs are created or approved
+ *   - Admin-only write protection for NATIVE_AD
+ *   - Audit log every status change
+ *   - Global ads enable/disable flag
+ *
+ * MUST NOT DO:
+ *   - Fetch ads
+ *   - Track impressions
+ *   - Inject ads into feed (Flutter handles gap algorithm)
+ */
+
+import * as admin from "firebase-admin";
+import * as functions from "firebase-functions";
+import {
+  onDocumentUpdated,
+} from "firebase-functions/v2/firestore";
+import {
+  COLLECTIONS,
+  FEED_ITEM_TYPES,
+  FEED_STATUS,
+  FEED_VISIBILITY,
+  FEED_PRIORITY,
+  REGION,
+  USER_ROLES,
+  AUDIT_ACTIONS,
+  POST_STATUS,
+} from "../../config/constants";
+import {
+  HomeFeedDocument,
+  UpdateFeedStatusRequest,
+  UpdateFeedPriorityRequest,
+  AdminCreateNativeAdRequest,
+  ApiResponse,
+  UserDocument,
+} from "../../types";
+import { serverTimestamp } from "../../utils/helpers";
+import { validateAuthenticated } from "../../utils/validators";
+
+const db = admin.firestore();
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Log an audit trail entry for feed operations
+ */
+async function logFeedAudit(
+  actorUid: string,
+  actorRole: string,
+  action: string,
+  feedId: string,
+  before: Record<string, unknown> | null,
+  after: Record<string, unknown> | null,
+  metadata: Record<string, unknown> = {}
+): Promise<void> {
+  try {
+    await db.collection(COLLECTIONS.AUDIT_LOGS).add({
+      actorUid,
+      actorRole,
+      action,
+      targetUid: null,
+      targetCollection: COLLECTIONS.HOME_FEEDS,
+      targetDocId: feedId,
+      before,
+      after,
+      metadata,
+      ipHash: null,
+      device: null,
+      timestamp: serverTimestamp(),
+    });
+  } catch (error) {
+    functions.logger.error("Failed to log feed audit", error);
+  }
+}
+
+/**
+ * Get default priority for a feed item type
+ */
+export function getDefaultPriority(type: string): number {
+  switch (type) {
+    case FEED_ITEM_TYPES.COMMUNITY_POST:
+    case FEED_ITEM_TYPES.ON_DEMAND_POST:
+    case FEED_ITEM_TYPES.BUY_SELL_POST:
+    case FEED_ITEM_TYPES.ANNOUNCEMENT:
+      return FEED_PRIORITY.NORMAL;
+    case FEED_ITEM_TYPES.MICRO_JOB:
+    case FEED_ITEM_TYPES.RESELLING:
+    case FEED_ITEM_TYPES.DRIVE_OFFER:
+      return FEED_PRIORITY.IMPORTANT;
+    case FEED_ITEM_TYPES.NATIVE_AD:
+    case FEED_ITEM_TYPES.SPONSORED:
+    case FEED_ITEM_TYPES.ADS_VIEW:
+      return FEED_PRIORITY.CRITICAL;
+    case FEED_ITEM_TYPES.SUGGESTED_FOLLOWING:
+      return FEED_PRIORITY.LOW;
+    default:
+      return FEED_PRIORITY.NORMAL;
+  }
+}
+
+/**
+ * Validate feed item type
+ */
+function isValidFeedType(type: string): boolean {
+  return Object.values(FEED_ITEM_TYPES).includes(type as any);
+}
+
+/**
+ * Validate feed status
+ */
+function isValidFeedStatus(status: string): boolean {
+  return Object.values(FEED_STATUS).includes(status as any);
+}
+
+// ============================================
+// FIRESTORE TRIGGERS - Auto Feed Creation
+// ============================================
+
+/**
+ * Trigger: When a community post is approved, auto-create a feed item
+ * Listens to /posts/{postId} updates
+ */
+export const onPostApproved = onDocumentUpdated(
+  {
+    document: `${COLLECTIONS.POSTS}/{postId}`,
+    region: REGION,
+  },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const postId = event.params.postId;
+
+    if (!before || !after) return null;
+
+    // Only trigger when status changes to "approved"
+    if (
+      before.status === POST_STATUS.APPROVED ||
+      after.status !== POST_STATUS.APPROVED
+    ) {
+      return null;
+    }
+
+    // Check if feed item already exists for this post
+    const existingFeed = await db
+      .collection(COLLECTIONS.HOME_FEEDS)
+      .where("refId", "==", postId)
+      .where("type", "==", FEED_ITEM_TYPES.COMMUNITY_POST)
+      .limit(1)
+      .get();
+
+    if (!existingFeed.empty) {
+      functions.logger.info(`Feed item already exists for post: ${postId}`);
+      return null;
+    }
+
+    // Determine visibility from post privacy
+    let visibility: string = FEED_VISIBILITY.PUBLIC;
+    if (after.privacy === "friends") {
+      visibility = FEED_VISIBILITY.FRIENDS;
+    } else if (after.privacy === "only_me") {
+      visibility = FEED_VISIBILITY.ONLY_ME;
+    }
+
+    // Create feed item
+    const feedDoc: Omit<HomeFeedDocument, "feedId"> & { feedId?: string } = {
+      type: FEED_ITEM_TYPES.COMMUNITY_POST,
+      refId: postId,
+      priority: FEED_PRIORITY.NORMAL,
+      status: FEED_STATUS.ACTIVE,
+      visibility,
+      createdAt: after.createdAt || serverTimestamp(),
+      meta: {
+        authorId: after.author?.uid || null,
+        adminPinned: false,
+        boosted: false,
+      },
+    };
+
+    const docRef = await db.collection(COLLECTIONS.HOME_FEEDS).add(feedDoc);
+    await docRef.update({ feedId: docRef.id });
+
+    functions.logger.info(
+      `✅ Feed item created for approved post: ${postId} → ${docRef.id}`
+    );
+
+    return null;
+  }
+);
+
+/**
+ * Trigger: When a micro job is approved, auto-create a feed item
+ * Listens to /jobs/{jobId} updates
+ */
+export const onJobApproved = onDocumentUpdated(
+  {
+    document: `${COLLECTIONS.JOBS}/{jobId}`,
+    region: REGION,
+  },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const jobId = event.params.jobId;
+
+    if (!before || !after) return null;
+
+    // Only trigger when status changes to APPROVED
+    if (before.status === "APPROVED" || after.status !== "APPROVED") {
+      return null;
+    }
+
+    // Check if feed item already exists
+    const existingFeed = await db
+      .collection(COLLECTIONS.HOME_FEEDS)
+      .where("refId", "==", jobId)
+      .where("type", "==", FEED_ITEM_TYPES.MICRO_JOB)
+      .limit(1)
+      .get();
+
+    if (!existingFeed.empty) {
+      functions.logger.info(`Feed item already exists for job: ${jobId}`);
+      return null;
+    }
+
+    const feedDoc: Omit<HomeFeedDocument, "feedId"> & { feedId?: string } = {
+      type: FEED_ITEM_TYPES.MICRO_JOB,
+      refId: jobId,
+      priority: FEED_PRIORITY.IMPORTANT,
+      status: FEED_STATUS.ACTIVE,
+      visibility: FEED_VISIBILITY.PUBLIC,
+      createdAt: after.createdAt || serverTimestamp(),
+      meta: {
+        authorId: after.authorId || null,
+        adminPinned: false,
+        boosted: false,
+      },
+    };
+
+    const docRef = await db.collection(COLLECTIONS.HOME_FEEDS).add(feedDoc);
+    await docRef.update({ feedId: docRef.id });
+
+    functions.logger.info(
+      `✅ Feed item created for approved job: ${jobId} → ${docRef.id}`
+    );
+
+    return null;
+  }
+);
+
+/**
+ * Trigger: When a post is deleted/removed, disable its feed item
+ */
+export const onPostDeleted = onDocumentUpdated(
+  {
+    document: `${COLLECTIONS.POSTS}/{postId}`,
+    region: REGION,
+  },
+  async (event) => {
+    const after = event.data?.after.data();
+    const postId = event.params.postId;
+
+    if (!after) return null;
+
+    // Only trigger when post is marked as deleted or rejected
+    if (!after.isDeleted && after.status !== "rejected") {
+      return null;
+    }
+
+    // Find and disable the feed item
+    const feedSnapshot = await db
+      .collection(COLLECTIONS.HOME_FEEDS)
+      .where("refId", "==", postId)
+      .where("type", "==", FEED_ITEM_TYPES.COMMUNITY_POST)
+      .get();
+
+    const batch = db.batch();
+    for (const doc of feedSnapshot.docs) {
+      batch.update(doc.ref, {
+        status: FEED_STATUS.REMOVED,
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+
+    functions.logger.info(
+      `✅ Feed items removed for deleted post: ${postId} (${feedSnapshot.size} items)`
+    );
+
+    return null;
+  }
+);
+
+/**
+ * Trigger: When a micro job is completed/paused, update its feed item
+ */
+export const onJobStatusChange = onDocumentUpdated(
+  {
+    document: `${COLLECTIONS.JOBS}/{jobId}`,
+    region: REGION,
+  },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const jobId = event.params.jobId;
+
+    if (!before || !after) return null;
+
+    // Only process relevant status changes
+    if (before.status === after.status) return null;
+
+    const completedStatuses = ["COMPLETED", "PAUSED", "REJECTED"];
+    if (!completedStatuses.includes(after.status)) return null;
+
+    // Find and update the feed item
+    const feedSnapshot = await db
+      .collection(COLLECTIONS.HOME_FEEDS)
+      .where("refId", "==", jobId)
+      .where("type", "==", FEED_ITEM_TYPES.MICRO_JOB)
+      .get();
+
+    const newStatus =
+      after.status === "PAUSED" ? FEED_STATUS.DISABLED : FEED_STATUS.REMOVED;
+
+    const batch = db.batch();
+    for (const doc of feedSnapshot.docs) {
+      batch.update(doc.ref, {
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+
+    functions.logger.info(
+      `✅ Feed items updated for job ${jobId}: status → ${newStatus}`
+    );
+
+    return null;
+  }
+);
+
+// ============================================
+// CALLABLE FUNCTIONS - Admin Operations
+// ============================================
+
+/**
+ * Admin: Create a Native Ad feed item
+ * Only admins can create NATIVE_AD type feeds
+ */
+export const createNativeAdFeed = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<AdminCreateNativeAdRequest>
+  ): Promise<ApiResponse> => {
+    // Auth check
+    const uid = validateAuthenticated(request.auth);
+    const data = request.data;
+
+    // Verify admin role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const adminRoles = [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN];
+    if (!adminRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can create native ad feeds"
+      );
+    }
+
+    // Validate inputs
+    if (!data.adUnitId || !data.platform) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "adUnitId and platform are required"
+      );
+    }
+
+    const feedDoc: Omit<HomeFeedDocument, "feedId"> & { feedId?: string } = {
+      type: FEED_ITEM_TYPES.NATIVE_AD,
+      refId: null,
+      priority: FEED_PRIORITY.CRITICAL,
+      status: FEED_STATUS.ACTIVE,
+      visibility: FEED_VISIBILITY.PUBLIC,
+      createdAt: serverTimestamp() as any,
+      meta: {
+        authorId: null,
+        adminPinned: false,
+        boosted: false,
+        adUnitId: data.adUnitId,
+        platform: data.platform,
+        emergencyPause: false,
+      },
+      rules: {
+        minGap: data.minGap || 6,
+        maxPerSession: data.maxPerSession || 3,
+      },
+    };
+
+    const docRef = await db.collection(COLLECTIONS.HOME_FEEDS).add(feedDoc);
+    await docRef.update({ feedId: docRef.id });
+
+    // Audit log
+    await logFeedAudit(
+      uid,
+      userData.role,
+      AUDIT_ACTIONS.FEED_CREATE,
+      docRef.id,
+      null,
+      feedDoc as unknown as Record<string, unknown>,
+      { type: FEED_ITEM_TYPES.NATIVE_AD, adUnitId: data.adUnitId }
+    );
+
+    return {
+      success: true,
+      message: "Native ad feed item created",
+      data: { feedId: docRef.id },
+    } as ApiResponse;
+  }
+);
+
+/**
+ * Admin: Update feed item status (enable/disable/remove)
+ */
+export const updateFeedItemStatus = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<UpdateFeedStatusRequest>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const data = request.data;
+
+    // Verify admin/moderator role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const allowedRoles = [
+      USER_ROLES.SUPER_ADMIN,
+      USER_ROLES.ADMIN,
+      USER_ROLES.MODERATOR,
+    ];
+    if (!allowedRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Insufficient permissions"
+      );
+    }
+
+    // Validate inputs
+    if (!data.feedId || !data.status) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "feedId and status are required"
+      );
+    }
+    if (!isValidFeedStatus(data.status)) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        `Invalid status: ${data.status}`
+      );
+    }
+
+    // Get current feed doc
+    const feedRef = db.collection(COLLECTIONS.HOME_FEEDS).doc(data.feedId);
+    const feedDoc = await feedRef.get();
+    if (!feedDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Feed item not found");
+    }
+
+    const beforeData = feedDoc.data()!;
+
+    // Update status
+    await feedRef.update({
+      status: data.status,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Audit log
+    await logFeedAudit(
+      uid,
+      userData.role,
+      AUDIT_ACTIONS.FEED_STATUS_CHANGE,
+      data.feedId,
+      { status: beforeData.status },
+      { status: data.status },
+      { reason: data.reason || "No reason provided" }
+    );
+
+    return {
+      success: true,
+      message: `Feed item status updated to ${data.status}`,
+    } as ApiResponse;
+  }
+);
+
+/**
+ * Admin: Update feed item priority
+ */
+export const updateFeedItemPriority = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<UpdateFeedPriorityRequest>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const data = request.data;
+
+    // Verify admin role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const adminRoles = [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN];
+    if (!adminRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can change feed priority"
+      );
+    }
+
+    if (!data.feedId || data.priority == null) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "feedId and priority are required"
+      );
+    }
+
+    const feedRef = db.collection(COLLECTIONS.HOME_FEEDS).doc(data.feedId);
+    const feedDoc = await feedRef.get();
+    if (!feedDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Feed item not found");
+    }
+
+    const beforeData = feedDoc.data()!;
+
+    await feedRef.update({
+      priority: data.priority,
+      updatedAt: serverTimestamp(),
+    });
+
+    await logFeedAudit(
+      uid,
+      userData.role,
+      AUDIT_ACTIONS.FEED_PRIORITY_CHANGE,
+      data.feedId,
+      { priority: beforeData.priority },
+      { priority: data.priority }
+    );
+
+    return {
+      success: true,
+      message: `Feed item priority updated to ${data.priority}`,
+    } as ApiResponse;
+  }
+);
+
+/**
+ * Admin: Get paginated feed items with filters
+ */
+export const getAdminFeedItems = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<{
+      limit?: number;
+      status?: string;
+      type?: string;
+    }>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const data = request.data;
+
+    // Verify admin role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    const userData = userDoc.data() as UserDocument;
+    const adminRoles = [
+      USER_ROLES.SUPER_ADMIN,
+      USER_ROLES.ADMIN,
+      USER_ROLES.MODERATOR,
+    ];
+    if (!adminRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Insufficient permissions"
+      );
+    }
+
+    const limit = data?.limit || 50;
+    const statusFilter = data?.status;
+    const typeFilter = data?.type;
+
+    let query: FirebaseFirestore.Query = db.collection(COLLECTIONS.HOME_FEEDS);
+
+    if (statusFilter && isValidFeedStatus(statusFilter)) {
+      query = query.where("status", "==", statusFilter);
+    }
+    if (typeFilter && isValidFeedType(typeFilter)) {
+      query = query.where("type", "==", typeFilter);
+    }
+
+    query = query
+      .orderBy("createdAt", "desc")
+      .limit(limit);
+
+    const snapshot = await query.get();
+    const feedItems = snapshot.docs.map((doc) => ({
+      ...doc.data(),
+      feedId: doc.id,
+    }));
+
+    return {
+      success: true,
+      message: `Found ${feedItems.length} feed items`,
+      data: { feeds: feedItems, total: feedItems.length },
+    } as ApiResponse;
+  }
+);

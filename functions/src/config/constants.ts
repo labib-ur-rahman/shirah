@@ -88,6 +88,7 @@ export const TRANSACTION_SOURCES = {
   RECHARGE_REFUND: "recharge_refund",
   PRODUCT_SALE: "product_sale",
   MICRO_JOB: "micro_job",
+  JOB_POST_REFUND: "job_post_refund",
   AD_REWARD: "ad_reward",
   ADMIN_CREDIT: "admin_credit",
   ADMIN_DEBIT: "admin_debit",
@@ -136,6 +137,10 @@ export const AUDIT_ACTIONS = {
   FEED_STATUS_CHANGE: "feed.status_change",
   FEED_REMOVE: "feed.remove",
   FEED_PRIORITY_CHANGE: "feed.priority_change",
+  FEED_DELETE: "feed.delete",
+  FEED_PIN_TOGGLE: "feed.pin_toggle",
+  FEED_BULK_STATUS: "feed.bulk_status",
+  FEED_EMERGENCY_PAUSE: "feed.emergency_pause",
   // Mobile Recharge actions
   RECHARGE_INITIATE: "recharge.initiate",
   RECHARGE_SUCCESS: "recharge.success",
@@ -180,6 +185,7 @@ export const COLLECTIONS = {
   MOBILE_RECHARGE: "mobile_recharge",
   DRIVE_OFFER_CACHE: "drive_offer_cache",
 } as const;
+
 
 // ============================================
 // MOBILE RECHARGE CONSTANTS
@@ -271,23 +277,23 @@ export const FEED_PRIORITY = {
 // COMMUNITY CONSTANTS
 // ============================================
 export const POST_STATUS = {
-  PENDING: "pending",
-  APPROVED: "approved",
-  REJECTED: "rejected",
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
 } as const;
 
 export const POST_PRIVACY = {
-  PUBLIC: "public",
-  FRIENDS: "friends",
-  ONLY_ME: "only_me",
+  PUBLIC: "PUBLIC",
+  FRIENDS: "FRIENDS",
+  ONLY_ME: "ONLY_ME",
 } as const;
 
 export const REACTION_TYPES = {
-  LIKE: "like",
-  LOVE: "love",
-  INSIGHTFUL: "insightful",
-  SUPPORT: "support",
-  INSPIRING: "inspiring",
+  LIKE: "LIKE",
+  LOVE: "LOVE",
+  INSIGHTFUL: "INSIGHTFUL",
+  SUPPORT: "SUPPORT",
+  INSPIRING: "INSPIRING",
 } as const;
 
 // ============================================

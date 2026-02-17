@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:shirah/core/common/styles/global_text_style.dart';
+import 'package:shirah/core/localization/app_string_localizations.dart';
+import 'package:shirah/core/utils/constants/app_style_colors.dart';
+import 'package:shirah/core/utils/constants/colors.dart';
 import 'package:shirah/data/models/recharge/drive_offer_model.dart';
 
 /// Drive offer card widget - Shows offer details in a compact card
@@ -18,17 +22,19 @@ class DriveOfferCard extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 10.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-        borderRadius: BorderRadius.circular(14.r),
+        color: AppStyleColors.instance.surface,
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.grey.shade100,
+          color: isDark
+              ? AppColors.white.withValues(alpha: 0.06)
+              : AppColors.grey.withValues(alpha: 0.5),
         ),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
+                  color: AppColors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -36,99 +42,75 @@ class DriveOfferCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row - Operator + Offer Type + Price
+          /// -- Top row: Operator + Offer Type + Price
           Row(
             children: [
-              // Operator badge
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: _operatorColor(offer.operator).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-                child: Text(
-                  offer.operatorName,
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
-                    color: _operatorColor(offer.operator),
-                  ),
-                ),
+              _buildBadge(
+                label: offer.operatorName,
+                color: _operatorColor(offer.operator),
+                isDark: isDark,
               ),
               SizedBox(width: 8.w),
-              // Offer type badge
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: _offerTypeColor(
-                    offer.offerType,
-                  ).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-                child: Text(
-                  offer.offerTypeName,
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w600,
-                    color: _offerTypeColor(offer.offerType),
-                  ),
-                ),
+              _buildBadge(
+                label: offer.offerTypeName,
+                color: _offerTypeColor(offer.offerType),
+                isDark: isDark,
               ),
               const Spacer(),
-              // Price
               Text(
                 offer.formattedAmount,
-                style: TextStyle(
-                  fontSize: 18.sp,
+                style: getBoldTextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF4B68FF),
+                  color: AppColors.primary,
                 ),
               ),
             ],
           ),
           SizedBox(height: 10.h),
 
-          // Offer details grid
+          /// -- Offer details chips
           _buildOfferDetailsRow(isDark),
-          SizedBox(height: 8.h),
+          SizedBox(height: 10.h),
 
-          // Bottom row - Validity + Cashback + Buy button
+          /// -- Bottom row: Validity + Cashback + Buy button
           Row(
             children: [
-              // Validity
               Icon(
                 Iconsax.calendar_1,
                 size: 13.sp,
-                color: isDark ? Colors.white38 : Colors.grey.shade500,
+                color: isDark
+                    ? AppColors.white.withValues(alpha: 0.38)
+                    : AppColors.darkGrey,
               ),
               SizedBox(width: 4.w),
               Text(
                 offer.validity,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: isDark ? Colors.white54 : Colors.grey.shade600,
+                style: getTextStyle(
+                  fontSize: 11,
+                  color: isDark
+                      ? AppColors.white.withValues(alpha: 0.54)
+                      : AppColors.darkerGrey,
                 ),
               ),
               SizedBox(width: 12.w),
-              // Cashback
               if (offer.commissionAmount > 0) ...[
                 Icon(
                   Iconsax.money_recive,
                   size: 13.sp,
-                  color: const Color(0xFF16A34A),
+                  color: AppColors.success,
                 ),
                 SizedBox(width: 4.w),
                 Text(
-                  'Cashback ${offer.formattedCashback}',
-                  style: TextStyle(
-                    fontSize: 11.sp,
+                  '${AppStrings.cashback} ${offer.formattedCashback}',
+                  style: getBoldTextStyle(
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF16A34A),
+                    color: AppColors.success,
                   ),
                 ),
               ],
               const Spacer(),
-              // Buy button
               GestureDetector(
                 onTap: onBuy,
                 child: Container(
@@ -137,15 +119,15 @@ class DriveOfferCard extends StatelessWidget {
                     vertical: 7.h,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4B68FF),
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Text(
-                    'Buy',
-                    style: TextStyle(
-                      fontSize: 12.sp,
+                    AppStrings.buyNow,
+                    style: getBoldTextStyle(
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   ),
                 ),
@@ -153,6 +135,28 @@ class DriveOfferCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBadge({
+    required String label,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6.r),
+      ),
+      child: Text(
+        label,
+        style: getBoldTextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
       ),
     );
   }
@@ -165,7 +169,7 @@ class DriveOfferCard extends StatelessWidget {
         _buildDetailChip(
           icon: Iconsax.global,
           label: offer.internetPack,
-          color: const Color(0xFF2563EB),
+          color: AppColors.info,
           isDark: isDark,
         ),
       );
@@ -174,8 +178,8 @@ class DriveOfferCard extends StatelessWidget {
       items.add(
         _buildDetailChip(
           icon: Iconsax.call,
-          label: '${offer.minutePack} Min',
-          color: const Color(0xFF16A34A),
+          label: offer.minutePack,
+          color: AppColors.success,
           isDark: isDark,
         ),
       );
@@ -184,8 +188,8 @@ class DriveOfferCard extends StatelessWidget {
       items.add(
         _buildDetailChip(
           icon: Iconsax.sms,
-          label: '${offer.smsPack} SMS',
-          color: const Color(0xFFF59E0B),
+          label: offer.smsPack,
+          color: AppColors.warning,
           isDark: isDark,
         ),
       );
@@ -225,8 +229,8 @@ class DriveOfferCard extends StatelessWidget {
           SizedBox(width: 4.w),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11.sp,
+            style: getBoldTextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w600,
               color: color,
             ),
@@ -249,24 +253,24 @@ class DriveOfferCard extends StatelessWidget {
       case 'TL':
         return const Color(0xFF0051A2);
       default:
-        return Colors.grey;
+        return AppColors.darkGrey;
     }
   }
 
   Color _offerTypeColor(String type) {
     switch (type.toLowerCase()) {
       case 'internet':
-        return const Color(0xFF2563EB);
+        return AppColors.info;
       case 'minute':
-        return const Color(0xFF16A34A);
+        return AppColors.success;
       case 'combo':
         return const Color(0xFF9333EA);
       case 'bundle':
-        return const Color(0xFFE87C03);
+        return AppColors.warning;
       case 'sms':
         return const Color(0xFFF59E0B);
       default:
-        return Colors.grey;
+        return AppColors.darkGrey;
     }
   }
 }

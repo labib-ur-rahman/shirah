@@ -730,3 +730,38 @@ export const searchUsers = functions.https.onCall(
     };
   }
 );
+
+/**
+ * Get all users with pagination (latest first)
+ * Admin only - requires "user.search" permission
+ */
+export const getAllUsers = functions.https.onCall(
+  { region: REGION },
+  async (request: functions.https.CallableRequest<{
+    page?: number;
+    limit?: number;
+  }>): Promise<ApiResponse<UserDocument[]>> => {
+    const actorUid = validateAuthenticated(request.auth);
+    const { page = 1, limit = 20 } = request.data;
+
+    await verifyAdminPermission(actorUid, "user.search");
+
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit;
+
+    const snapshot = await db
+      .collection(COLLECTIONS.USERS)
+      .orderBy("meta.createdAt", "desc")
+      .limit(limit)
+      .offset(offset)
+      .get();
+
+    const users = snapshot.docs.map((doc) => doc.data() as UserDocument);
+
+    return {
+      success: true,
+      message: `Retrieved ${users.length} users (page ${page})`,
+      data: users,
+    };
+  }
+);
