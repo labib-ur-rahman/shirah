@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shirah/core/common/styles/global_text_style.dart';
+import 'package:shirah/core/common/widgets/images/custom_circular_image.dart';
+import 'package:shirah/core/common/widgets/shimmers/shimmer.dart';
+import 'package:shirah/core/services/firebase_service.dart';
 import 'package:shirah/core/utils/constants/app_style_colors.dart';
 import 'package:shirah/data/models/community/post_reaction_model.dart';
 import 'package:shirah/data/models/community/reaction_summary_model.dart';
@@ -31,6 +35,8 @@ class _ReactionListScreenState extends State<ReactionListScreen>
   List<PostReactionModel> _reactions = [];
   bool _isLoading = true;
   String? _activeFilter;
+  final ValueNotifier<Map<String, _UserProfile>> _userProfiles =
+      ValueNotifier<Map<String, _UserProfile>>({});
 
   @override
   void initState() {
@@ -70,14 +76,56 @@ class _ReactionListScreenState extends State<ReactionListScreen>
         _reactions = result;
         _isLoading = false;
       });
+      await _loadUserProfilesForReactions(result);
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadUserProfilesForReactions(
+    List<PostReactionModel> reactions,
+  ) async {
+    final existing = _userProfiles.value;
+    final uids = reactions
+        .map((reaction) => reaction.userId)
+        .where((uid) => uid.isNotEmpty && !existing.containsKey(uid))
+        .toList();
+    if (uids.isEmpty) return;
+
+    const batchSize = 10;
+    for (var i = 0; i < uids.length; i += batchSize) {
+      final batch = uids.sublist(
+        i,
+        i + batchSize > uids.length ? uids.length : i + batchSize,
+      );
+      try {
+        final snapshot = await FirebaseService.instance.usersRef
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        final updates = Map<String, _UserProfile>.from(_userProfiles.value);
+        for (final doc in snapshot.docs) {
+          final data = doc.data();
+          final identity = data['identity'] as Map<String, dynamic>? ?? {};
+          final firstName = identity['firstName']?.toString() ?? '';
+          final lastName = identity['lastName']?.toString() ?? '';
+          final fullName = '$firstName $lastName'.trim();
+          final photoUrl = identity['photoURL']?.toString() ?? '';
+          updates[doc.id] = _UserProfile(
+            name: fullName.isNotEmpty ? fullName : 'User',
+            photoUrl: photoUrl,
+          );
+        }
+        _userProfiles.value = updates;
+      } catch (_) {
+        // Silent fail: keep placeholders for missing users
+      }
     }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _userProfiles.dispose();
     super.dispose();
   }
 
@@ -87,9 +135,9 @@ class _ReactionListScreenState extends State<ReactionListScreen>
     final colors = AppStyleColors.instance;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A0A14) : Colors.white,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0F0F1A) : Colors.white,
+        backgroundColor: colors.background,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         leading: IconButton(
@@ -161,12 +209,7 @@ class _ReactionListScreenState extends State<ReactionListScreen>
         ),
       ),
       body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: colors.primary,
-              ),
-            )
+          ? _buildShimmerList(isDark)
           : _reactions.isEmpty
           ? Center(
               child: Text(
@@ -194,51 +237,129 @@ class _ReactionListScreenState extends State<ReactionListScreen>
   }
 
   Widget _buildReactionItem(PostReactionModel reaction, bool isDark) {
-    return ListTile(
-      leading: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 44.w,
-            height: 44.h,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDark ? const Color(0xFF2A2A3E) : const Color(0xFFE5E7EB),
-            ),
-            child: Icon(
-              Iconsax.user,
-              size: 22.sp,
-              color: isDark ? Colors.white38 : Colors.grey,
-            ),
-          ),
-          Positioned(
-            bottom: 2.h,
-            right: 2.w,
-            child: Center(
-              child: Image.asset(
-                ReactionSummaryModel.emoji(reaction.reaction),
-                width: 16.w,
-                height: 16.h,
+    return ValueListenableBuilder<Map<String, _UserProfile>>(
+      valueListenable: _userProfiles,
+      builder: (context, profiles, _) {
+        final profile = profiles[reaction.userId];
+        final name = profile?.name ?? (reaction.userName ?? 'User');
+        final photo = profile?.photoUrl ?? (reaction.userPhoto ?? '');
+        final initials = _getInitials(name);
+        return ListTile(
+          leading: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              photo.isNotEmpty
+                  ? AppCircularImage(
+                      image: photo,
+                      isNetworkImage: true,
+                      width: 44.w,
+                      height: 44.h,
+                      padding: 0,
+                      backgroundColor: isDark
+                          ? const Color(0xFF2A2A3E)
+                          : const Color(0xFFE5E7EB),
+                    )
+                  : Container(
+                      width: 44.w,
+                      height: 44.h,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark
+                            ? const Color(0xFF2A2A3E)
+                            : const Color(0xFFE5E7EB),
+                      ),
+                      child: initials.isNotEmpty
+                          ? Center(
+                              child: Text(
+                                initials,
+                                style: getBoldTextStyle(
+                                  fontSize: 14,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Iconsax.user,
+                              size: 22.sp,
+                              color: isDark ? Colors.white38 : Colors.grey,
+                            ),
+                    ),
+              Positioned(
+                bottom: 2.h,
+                right: 2.w,
+                child: Center(
+                  child: Image.asset(
+                    ReactionSummaryModel.emoji(reaction.reaction),
+                    width: 16.w,
+                    height: 16.h,
+                  ),
+                ),
               ),
+            ],
+          ),
+          title: Text(
+            name.isNotEmpty ? name : 'User',
+            style: getBoldTextStyle(
+              fontSize: 15,
+              color: isDark ? Colors.white : const Color(0xFF1E2939),
             ),
           ),
-        ],
-      ),
-      title: Text(
-        reaction.userName ?? 'User',
-        style: getBoldTextStyle(
-          fontSize: 15,
-          color: isDark ? Colors.white : const Color(0xFF1E2939),
-        ),
-      ),
-      subtitle: Text(
-        ReactionType.displayName(reaction.reaction),
-        style: getTextStyle(
-          fontSize: 13,
-          color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
-        ),
-      ),
+          subtitle: Text(
+            ReactionType.displayName(reaction.reaction),
+            style: getTextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  Widget _buildShimmerList(bool isDark) {
+    return ListView.separated(
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      itemCount: 8,
+      separatorBuilder: (_, __) => Divider(
+        height: 1,
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : const Color(0xFFF9FAFB),
+      ),
+      itemBuilder: (_, __) {
+        return ListTile(
+          leading: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const AppShimmerEffect(width: 44, height: 44, radius: 44),
+              Positioned(
+                bottom: 2.h,
+                right: 2.w,
+                child: const AppShimmerEffect(width: 16, height: 16, radius: 16),
+              ),
+            ],
+          ),
+          title: const AppShimmerEffect(width: 140, height: 12, radius: 6),
+          subtitle: const AppShimmerEffect(width: 80, height: 10, radius: 6),
+        );
+      },
+    );
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return '';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) {
+      final first = parts.first;
+      return (first.length >= 2 ? first.substring(0, 2) : first)
+          .toUpperCase();
+    }
+    final first = parts[0].isNotEmpty ? parts[0][0] : '';
+    final second = parts[1].isNotEmpty ? parts[1][0] : '';
+    return (first + second).toUpperCase();
   }
 
   int _getCountForType(String type) {
@@ -257,4 +378,14 @@ class _ReactionListScreenState extends State<ReactionListScreen>
         return 0;
     }
   }
+}
+
+class _UserProfile {
+  final String name;
+  final String photoUrl;
+
+  const _UserProfile({
+    required this.name,
+    required this.photoUrl,
+  });
 }

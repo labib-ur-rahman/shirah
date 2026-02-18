@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shirah/core/utils/constants/colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shirah/core/utils/constants/app_style_colors.dart';
 import 'package:shirah/core/utils/theme/custom_themes/chip_theme.dart';
 import 'package:shirah/core/utils/theme/custom_themes/text_theme.dart';
 
@@ -13,13 +14,15 @@ import 'custom_themes/text_field_theme.dart';
 class AppTheme {
   AppTheme._();
 
+  static final AppStyleColors appStyleColors = AppStyleColors.instance;
+
   /// Light Theme
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
-    fontFamily: 'Poppins',
+    fontFamily: GoogleFonts.hindSiliguri().fontFamily,
     brightness: Brightness.light,
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: Colors.white,
+    primaryColor: appStyleColors.primary,
+    scaffoldBackgroundColor: appStyleColors.background,
     textTheme: AppTextTheme.lightTextTheme,
     chipTheme: AppChipTheme.lightChipTheme,
     appBarTheme: AppAppBarTheme.lightAppBarTheme,
@@ -33,10 +36,10 @@ class AppTheme {
   /// Dark Theme
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
-    fontFamily: 'Poppins',
+    fontFamily: GoogleFonts.hindSiliguri().fontFamily,
     brightness: Brightness.dark,
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: Colors.black,
+    primaryColor: appStyleColors.primary,
+    scaffoldBackgroundColor: appStyleColors.background,
     textTheme: AppTextTheme.darkTextTheme,
     chipTheme: AppChipTheme.darkChipTheme,
     appBarTheme: AppAppBarTheme.darkAppBarTheme,

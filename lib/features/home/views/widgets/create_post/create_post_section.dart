@@ -35,22 +35,6 @@ class CreatePostSection extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
             borderRadius: BorderRadius.circular(14.r),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.1),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.1),
-                blurRadius: 2,
-                offset: const Offset(0, 1),
-              ),
-            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -72,7 +56,8 @@ class CreatePostSection extends StatelessWidget {
                         ),
                       ),
                       child: GestureDetector(
-                        onTap: () => Get.toNamed(AppRoutes.ADMIN_FEED_MANAGEMENT),
+                        onTap: () =>
+                            Get.toNamed(AppRoutes.ADMIN_FEED_MANAGEMENT),
                         // onTap: () => Get.toNamed(AppRoutes.COMMUNITY),
                         child: avatarUrl.isNotEmpty
                             ? AppCircularImage(

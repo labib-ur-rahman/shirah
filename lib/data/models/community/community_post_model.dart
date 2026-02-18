@@ -35,6 +35,38 @@ class CommunityPostModel {
     required this.updatedAt,
   });
 
+  CommunityPostModel copyWith({
+    String? postId,
+    PostAuthorModel? author,
+    String? text,
+    List<String>? images,
+    String? privacy,
+    String? status,
+    ReactionSummaryModel? reactionSummary,
+    int? commentCount,
+    bool? isDeleted,
+    DateTime? deletedAt,
+    String? deletedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return CommunityPostModel(
+      postId: postId ?? this.postId,
+      author: author ?? this.author,
+      text: text ?? this.text,
+      images: images ?? this.images,
+      privacy: privacy ?? this.privacy,
+      status: status ?? this.status,
+      reactionSummary: reactionSummary ?? this.reactionSummary,
+      commentCount: commentCount ?? this.commentCount,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deletedBy: deletedBy ?? this.deletedBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   /// Empty post for initialization
   factory CommunityPostModel.empty() {
     return CommunityPostModel(

@@ -6,10 +6,10 @@ import 'package:shirah/core/utils/constants/app_style_colors.dart';
 import 'package:shirah/features/main/controllers/main_header_controller.dart';
 import 'package:shirah/features/main/views/widgets/profile_picture.dart';
 
-/// Inbox Tab - Messages and conversations screen
+/// Wallet Tab - Messages and conversations screen
 /// Theme changes propagate via widget tree rebuild — no Obx needed
-class InboxTab extends StatelessWidget {
-  const InboxTab({super.key});
+class WalletTab extends StatelessWidget {
+  const WalletTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +47,7 @@ class InboxTab extends StatelessWidget {
   /// Build back button to return to previous tab
   Widget _buildBackButton(bool isDark) {
     return GestureDetector(
-      onTap: () => MainHeaderController.instance.hideInbox(),
+      onTap: () => MainHeaderController.instance.hideWallet(),
       child: Row(
         children: [
           Icon(
