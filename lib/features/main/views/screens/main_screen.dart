@@ -10,9 +10,9 @@ import 'package:shirah/features/main/views/screens/main_tab_bar.dart';
 import 'package:shirah/features/main/views/screens/projects_tab.dart';
 import 'package:shirah/features/main/views/screens/shop_tab.dart';
 import 'package:shirah/features/main/views/screens/activities_tab.dart';
-import 'package:shirah/features/main/views/screens/profile_tab.dart';
 import 'package:shirah/features/main/views/screens/wallet_tab.dart';
 import 'package:shirah/features/main/views/widgets/app_drawer.dart';
+import 'package:shirah/features/profile/views/screens/user_profile_screen.dart';
 
 /// Main container with TabBar and TabBarView for swipeable navigation
 /// This is the primary screen after login with 5 tabs:
@@ -86,7 +86,7 @@ class MainScreen extends StatelessWidget {
                               ProjectsTab(),
                               ShopTab(),
                               ActivitiesTab(),
-                              ProfileTab(),
+                              UserProfileScreen(),
                             ],
                           ),
                         );

@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shirah/core/services/firebase_service.dart';
+import 'package:shirah/core/services/image_compression_service.dart';
+import 'package:shirah/core/services/logger_service.dart';
 import 'package:shirah/core/utils/constants/firebase_paths.dart';
 import 'package:shirah/core/utils/helpers/invite_code_helper.dart';
 import 'package:shirah/data/models/user/user_model.dart';
@@ -198,9 +203,14 @@ class UserRepository {
     await updateUser(uid, {'identity': identity.toMap()});
   }
 
-  /// Update user avatar
+  /// Update user avatar URL in Firestore
   Future<void> updateAvatar(String uid, String avatarUrl) async {
-    await updateUser(uid, {'identity.avatarUrl': avatarUrl});
+    await updateUser(uid, {'identity.photoURL': avatarUrl});
+  }
+
+  /// Update user cover URL in Firestore
+  Future<void> updateCoverURL(String uid, String coverUrl) async {
+    await updateUser(uid, {'identity.coverURL': coverUrl});
   }
 
   /// Update user name
@@ -290,5 +300,97 @@ class UserRepository {
         .get();
 
     return query.count ?? 0;
+  }
+
+  // ===== OTHER INFO =====
+
+  /// Update user bio (stored in users/{uid}/otherInfo.bio)
+  Future<void> updateBio(String uid, String bio) async {
+    await updateUser(uid, {'otherInfo.bio': bio});
+  }
+
+  /// Fetch user bio
+  Future<String> fetchBio(String uid) async {
+    final doc = await _firebase.usersCollection.doc(uid).get();
+    if (!doc.exists) return '';
+    // ignore: unnecessary_cast
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    final otherInfo = data['otherInfo'] as Map<String, dynamic>? ?? {};
+    return otherInfo['bio']?.toString() ?? '';
+  }
+
+  // ===== STORAGE =====
+
+  /// Compress and upload avatar image, returns download URL
+  Future<String> uploadAvatarImage(String uid, File imageFile) async {
+    try {
+      LoggerService.info('🖼️ Compressing avatar image...');
+      final compressed = await ImageCompressionService().compressImage(
+        imageFile,
+      );
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = '${FirebasePaths.userAvatar(uid)}/avatar_$timestamp.jpg';
+      final ref = FirebaseStorage.instance.ref().child(path);
+      final bytes = await compressed.readAsBytes();
+      final task = await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      final url = await task.ref.getDownloadURL();
+      LoggerService.info('✅ Avatar uploaded: $url');
+      return url;
+    } catch (e) {
+      LoggerService.error('Failed to upload avatar image', e);
+      rethrow;
+    }
+  }
+
+  /// Compress and upload cover image, returns download URL
+  Future<String> uploadCoverImage(String uid, File imageFile) async {
+    try {
+      LoggerService.info('🖼️ Compressing cover image...');
+      final compressed = await ImageCompressionService().compressImage(
+        imageFile,
+      );
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = '${FirebasePaths.userCover(uid)}/cover_$timestamp.jpg';
+      final ref = FirebaseStorage.instance.ref().child(path);
+      final bytes = await compressed.readAsBytes();
+      final task = await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      final url = await task.ref.getDownloadURL();
+      LoggerService.info('✅ Cover uploaded: $url');
+      return url;
+    } catch (e) {
+      LoggerService.error('Failed to upload cover image', e);
+      rethrow;
+    }
+  }
+
+  // ===== NETWORK STATS =====
+
+  /// Fetch total community members count (sum of level1–level15 totals)
+  Future<int> fetchCommunityMemberCount(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection(FirebasePaths.userNetworkStats)
+          .doc(uid)
+          .get();
+      if (!doc.exists) return 0;
+      final data = doc.data() ?? {};
+      int total = 0;
+      for (int i = 1; i <= 15; i++) {
+        final level = data['level$i'] as Map<String, dynamic>?;
+        if (level != null) {
+          total += (level['total'] as num?)?.toInt() ?? 0;
+        }
+      }
+      return total;
+    } catch (e) {
+      LoggerService.error('Failed to fetch community count', e);
+      return 0;
+    }
   }
 }
