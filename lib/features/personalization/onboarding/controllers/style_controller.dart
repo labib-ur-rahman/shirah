@@ -40,7 +40,9 @@ class StyleController extends GetxController {
       }
       selectedStyle.value = currentStyle;
       _styleColors.setStyle(currentStyle);
-      LoggerService.info('Current style loaded: ${currentStyle.name}');
+      LoggerService.info(
+        'Current style loaded: ${_styleColors.getStyleName(currentStyle)}',
+      );
     } catch (error) {
       LoggerService.error('Error loading style', error);
       selectedStyle.value = AppStyle.shirah;
@@ -59,7 +61,9 @@ class StyleController extends GetxController {
       // Save to storage
       LocalStorageService.setAppStyle(style);
 
-      LoggerService.info('Style changed to: ${style.name}');
+      LoggerService.info(
+        'Style changed to: ${_styleColors.getStyleName(style)}',
+      );
     } catch (error) {
       LoggerService.error('Error selecting style', error);
     }
@@ -98,7 +102,9 @@ class StyleController extends GetxController {
       // Force UI update
       Get.forceAppUpdate();
 
-      LoggerService.info('Style applied: ${selectedStyle.value.name}');
+      LoggerService.info(
+        'Style applied: ${_styleColors.getStyleName(selectedStyle.value)}',
+      );
 
       // Go back to previous screen
       Get.back();
@@ -119,7 +125,8 @@ class StyleController extends GetxController {
       Get.forceAppUpdate();
 
       LoggerService.info(
-        'Style selection completed: ${selectedStyle.value.name}',
+        'Style selection completed: '
+        '${_styleColors.getStyleName(selectedStyle.value)}',
       );
       Get.back();
     } catch (error) {

@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'logger_service.dart';
+import 'package:shirah/core/utils/constants/app_style_colors.dart';
 
 /// ============================================================================
 /// LOCAL STORAGE SERVICE - Unified Data Persistence Layer
@@ -226,9 +227,20 @@ class LocalStorageService {
   ///   // Style is now persisted and will be restored on next app launch
   static void setAppStyle(dynamic style) {
     try {
-      // Store the style index
-      _storage?.write(_keyAppStyle, style.index);
-      LoggerService.info('💾 App style saved: ${style.name}');
+      if (style is AppStyle) {
+        // Store the style index
+        _storage?.write(_keyAppStyle, style.index);
+        LoggerService.info(
+          '💾 App style saved: ${AppStyleColors.instance.getStyleName(style)}',
+        );
+        return;
+      }
+
+      // Fallback: handle unexpected types safely
+      if (style is int) {
+        _storage?.write(_keyAppStyle, style);
+      }
+      LoggerService.info('💾 App style saved: $style');
     } catch (e) {
       LoggerService.error('❌ Failed to save app style', e);
     }
