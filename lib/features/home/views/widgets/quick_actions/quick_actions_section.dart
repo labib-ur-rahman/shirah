@@ -6,6 +6,7 @@ import 'package:shirah/core/common/styles/global_text_style.dart';
 import 'package:shirah/core/localization/app_string_localizations.dart';
 import 'package:shirah/core/services/theme_service.dart';
 import 'package:shirah/core/utils/constants/app_style_colors.dart';
+import 'package:shirah/core/common/widgets/coming_soon_dialog.dart';
 import 'package:shirah/routes/app_routes.dart';
 
 /// Quick Actions Section - Horizontal scrollable action buttons
@@ -101,7 +102,13 @@ class QuickActionsSection extends StatelessWidget {
                   bgColor: const Color(0xFFDCFCE7).withValues(alpha: 0.4),
                   iconColor: const Color(0xFF16A34A),
                   isDark: isDark,
-                  onTap: () {},
+                  onTap: () {
+                    ComingSoonDialog.show(
+                      featureName: 'Reselling',
+                      featureIcon: Iconsax.shop,
+                      accentColor: const Color(0xFF16A34A),
+                    );
+                  },
                 ),
                 SizedBox(width: 12.w),
 
@@ -112,7 +119,13 @@ class QuickActionsSection extends StatelessWidget {
                   bgColor: const Color(0xFFFFEDD4).withValues(alpha: 0.4),
                   iconColor: const Color(0xFFEA580C),
                   isDark: isDark,
-                  onTap: () {},
+                  onTap: () {
+                    ComingSoonDialog.show(
+                      featureName: 'Buy & Sell',
+                      featureIcon: Iconsax.shopping_bag,
+                      accentColor: const Color(0xFFEA580C),
+                    );
+                  },
                 ),
                 SizedBox(width: 12.w),
 
@@ -123,7 +136,13 @@ class QuickActionsSection extends StatelessWidget {
                   bgColor: const Color(0xFFFFE4E6).withValues(alpha: 0.4),
                   iconColor: const Color(0xFFE11D48),
                   isDark: isDark,
-                  onTap: () {},
+                  onTap: () {
+                    ComingSoonDialog.show(
+                      featureName: 'On-Demand',
+                      featureIcon: Iconsax.search_normal,
+                      accentColor: const Color(0xFFE11D48),
+                    );
+                  },
                 ),
                 SizedBox(width: 12.w),
 
@@ -134,7 +153,13 @@ class QuickActionsSection extends StatelessWidget {
                   bgColor: const Color(0xFFEDE9FE).withValues(alpha: 0.4),
                   iconColor: const Color(0xFF7C3AED),
                   isDark: isDark,
-                  onTap: () {},
+                  onTap: () {
+                    ComingSoonDialog.show(
+                      featureName: 'My Network',
+                      featureIcon: Iconsax.people,
+                      accentColor: const Color(0xFF7C3AED),
+                    );
+                  },
                 ),
               ],
             ),

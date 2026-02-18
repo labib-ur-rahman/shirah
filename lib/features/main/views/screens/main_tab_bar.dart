@@ -8,6 +8,7 @@ import 'package:shirah/core/utils/constants/image_path.dart';
 import 'package:shirah/core/utils/constants/svg_path.dart';
 import 'package:shirah/core/utils/constants/app_style_colors.dart';
 import 'package:shirah/core/utils/helpers/svg_icon_helper.dart';
+import 'package:shirah/features/home/controllers/home_feed_controller.dart';
 import 'package:shirah/features/main/controllers/main_header_controller.dart';
 import 'package:shirah/features/main/views/widgets/brand_logo.dart';
 import 'package:shirah/features/main/views/widgets/tab_icon.dart';
@@ -161,7 +162,17 @@ class MainTabBar extends StatelessWidget {
                         child: Obx(
                           () => TabBar(
                             controller: controller.tabController,
-                            onTap: (index) => controller.changeTab(index),
+                            onTap: (index) {
+                              final isReselectHome =
+                                  index == 0 &&
+                                  controller.currentTabIndex == 0 &&
+                                  !controller.isWalletVisible;
+                              if (isReselectHome) {
+                                HomeFeedController.instance
+                                    .scrollToTopAndRefresh();
+                              }
+                              controller.changeTab(index);
+                            },
                             // Hide indicator when wallet is visible
                             indicator: controller.isWalletVisible
                                 ? const BoxDecoration()

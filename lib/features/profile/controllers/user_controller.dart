@@ -30,7 +30,10 @@ class UserController extends GetxController {
   String get fullName => user.value?.identity.fullName ?? '';
   String get phone => user.value?.identity.phone ?? '';
   String get email => user.value?.identity.email ?? '';
-  String get avatarUrl => user.value?.identity.avatarUrl ?? '';
+  String get avatarUrl => user.value?.identity.photoURL ?? '';
+  String get coverUrl => user.value?.identity.coverURL ?? '';
+  String get firstName => user.value?.identity.firstName ?? '';
+  String get lastName => user.value?.identity.lastName ?? '';
 
   // Codes
   String get inviteCode => user.value?.formattedInviteCode ?? '';

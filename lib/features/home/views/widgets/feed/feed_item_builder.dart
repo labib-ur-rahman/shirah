@@ -76,11 +76,12 @@ class FeedItemBuilder extends StatelessWidget {
     }
 
     return MicroJobCard(
+      jobId: job.jobId,
       jobTitle: job.title,
       description: job.details,
       imageUrl: job.coverImage.isNotEmpty ? job.coverImage : null,
       taskLink: job.jobLink.isNotEmpty ? job.jobLink : null,
-      perTaskAmount: '\$${job.perUserPrice.toStringAsFixed(0)}',
+      perTaskAmount: '\৳${job.perUserPrice.toStringAsFixed(2)}',
       completedTasks: job.submittedCount,
       totalTasks: job.limit,
     );
