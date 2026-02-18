@@ -269,7 +269,7 @@ class _CommunityPostCardState extends State<CommunityPostCard>
         overlay.insert(entry);
         Future.delayed(const Duration(seconds: 1), () => entry.remove());
       },
-      child: AnimatedEmoji(emoji, size: 34.sp, repeat: true),
+      child: AnimatedEmoji(emoji, size: 40.sp, repeat: true),
     );
   }
 
@@ -548,18 +548,18 @@ class _CommunityPostCardState extends State<CommunityPostCard>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
         borderRadius: BorderRadius.circular(14.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 2,
-            offset: const Offset(0, -1),
-          ),
-        ],
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: Colors.black.withValues(alpha: 0.1),
+        //     blurRadius: 3,
+        //     offset: const Offset(0, 1),
+        //   ),
+        //   BoxShadow(
+        //     color: Colors.black.withValues(alpha: 0.1),
+        //     blurRadius: 2,
+        //     offset: const Offset(0, -1),
+        //   ),
+        // ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
