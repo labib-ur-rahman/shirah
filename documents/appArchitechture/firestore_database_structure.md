@@ -55,6 +55,14 @@ users (Collection)
     │   ├── photoURL : String            # Profile photo URL (empty string if none)
     │   └── coverURL : String            # Cover photo URL (empty string if none)
     │
+    ├── otherInfo : Map                  # User Profile Update Info
+    │   ├── bio : String                 # user given bio
+    │   ├── dob : String                 # Date of birth
+    │   ├── gender : String              # Gender Male or Female
+    │   ├── country : String             # Country 
+    │   ├── bloodGroup : String          # Blood Group 
+    │   └── address : String             # User Address
+    │
     ├── codes : Map                      # Invite & referral codes
     │   ├── inviteCode : String          # User's unique 8-char invite code (format: S + 6 random + L)
     │   │                                # Example: "SA7K9Q2L"

@@ -492,4 +492,61 @@ const Map<String, String> bnBD = {
   'admin_native_ad_no_ads': 'কোনো নেটিভ বিজ্ঞাপন পাওয়া যায়নি',
   'admin_native_ad_no_ads_subtitle':
       'ফিডে প্রদর্শনের জন্য আপনার প্রথম নেটিভ বিজ্ঞাপন তৈরি করুন।',
+
+  // ==================== User Profile Screen ====================
+  'profile_followers': 'ফলোয়ার',
+  'profile_following': 'ফলো করছেন',
+  'profile_community_members': 'কমিউনিটি সদস্য',
+  'profile_sell_now': 'এখনই বিক্রি করুন',
+  'profile_wholesale': 'পাইকারি',
+  'profile_max_selling': 'সর্বোচ্চ বিক্রয়',
+  'profile_your_earning_upto': 'আপনার আয় সর্বোচ্চ',
+  'profile_per_sale': 'প্রতি বিক্রয়ে',
+  'profile_job_post': 'জব পোস্ট',
+  'profile_colors': 'রঙ:',
+  'profile_sizes': 'সাইজ:',
+  'profile_tab_community': 'কমিউনিটি',
+  'profile_tab_buy_sell': 'ক্রয় বিক্রয়',
+  'profile_tab_job_post': 'জব পোস্ট',
+  'profile_tab_products': 'খুঁজছি',
+  'profile_bio_add': 'আপনার বায়ো যোগ করুন...',
+  'profile_bio_empty': 'নিজের সম্পর্কে বলুন। বায়ো যোগ করতে ট্যাপ করুন।',
+  'profile_bio_edit': 'বায়ো এডিট করুন',
+  'profile_bio_dialog_title': 'আপনার বায়ো আপডেট করুন',
+  'profile_bio_hint': 'নিজের সম্পর্কে কিছু লিখুন...',
+  'profile_bio_save': 'বায়ো সেভ করুন',
+  'profile_bio_saving': 'সেভ হচ্ছে...',
+  'profile_bio_saved': 'বায়ো সফলভাবে আপডেট হয়েছে',
+  'profile_bio_error': 'বায়ো আপডেট ব্যর্থ হয়েছে',
+  'profile_bio_max_chars': 'সর্বোচ্চ ১৫০ অক্ষর',
+
+  // ── Image Picker ────────────────────────────────────────────
+  'picker_profile_photo': 'প্রোফাইল ছবি আপডেট করুন',
+  'picker_cover_photo': 'কভার ছবি আপডেট করুন',
+  'picker_gallery': 'গ্যালারি থেকে বেছে নিন',
+  'picker_camera': 'ছবি তুলুন',
+  'picker_uploading_avatar': 'প্রোফাইল ছবি আপলোড হচ্ছে...',
+  'picker_uploading_cover': 'কভার ছবি আপলোড হচ্ছে...',
+  'picker_avatar_success': 'প্রোফাইল ছবি আপডেট হয়েছে',
+  'picker_cover_success': 'কভার ছবি আপডেট হয়েছে',
+  'picker_upload_failed': 'আপলোড ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
+  'picker_permission_denied': 'অনুমতি প্রত্যাখ্যাত',
+  'picker_permission_gallery_msg': 'ছবি অ্যাক্সেস করতে সেটিংস থেকে অনুমতি দিন।',
+  'picker_permission_camera_msg':
+      'ক্যামেরা ব্যবহার করতে সেটিংস থেকে অনুমতি দিন।',
+  'picker_open_settings': 'সেটিংস খুলুন',
+
+  // ── Edit Profile ─────────────────────────────────────────────
+  'edit_profile_title': 'প্রোফাইল সম্পাদনা',
+  'edit_first_name': 'প্রথম নাম',
+  'edit_last_name': 'শেষ নাম',
+  'edit_phone': 'ফোন নম্বর',
+  'edit_phone_hint': 'এখান থেকে পরিবর্তন করা যাবে না',
+  'edit_save_changes': 'পরিবর্তন সংরক্ষণ করুন',
+  'edit_profile_success': 'প্রোফাইল সফলভাবে আপডেট হয়েছে',
+  'edit_profile_failed': 'প্রোফাইল আপডেট ব্যর্থ হয়েছে',
+  'edit_name_required': 'নাম প্রয়োজন',
+
+  // ── Community ────────────────────────────────────────────────
+  'community_members': 'কমিউনিটি সদস্য',
 };
