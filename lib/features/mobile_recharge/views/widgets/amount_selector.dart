@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:shirah/core/common/styles/global_text_style.dart';
 import 'package:shirah/core/localization/app_string_localizations.dart';
+import 'package:shirah/core/utils/constants/app_style_colors.dart';
+import 'package:shirah/core/utils/constants/colors.dart';
 import 'package:shirah/features/mobile_recharge/controllers/mobile_recharge_controller.dart';
 
 /// Quick amount selector grid for mobile recharge
@@ -18,30 +21,37 @@ class AmountSelector extends StatelessWidget {
       children: [
         Text(
           AppStrings.selectAmount,
-          style: TextStyle(
-            fontSize: 14.sp,
+          style: getBoldTextStyle(
+            fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white70 : Colors.black87,
+            color: isDark
+                ? AppColors.white.withValues(alpha: 0.7)
+                : AppColors.dark,
           ),
         ),
-        SizedBox(height: 10.h),
-        Obx(() {
-          // Access reactive variable to trigger rebuild
-          final currentText = controller.selectedAmount.value;
-          return Wrap(
-            spacing: 10.w,
-            runSpacing: 10.h,
-            children: MobileRechargeController.quickAmounts.map((amount) {
-              final isSelected = currentText == amount.toString();
-              return _buildAmountChip(
-                amount: amount,
-                isSelected: isSelected,
-                isDark: isDark,
-                onTap: () => controller.selectQuickAmount(amount),
-              );
-            }).toList(),
-          );
-        }),
+        SizedBox(height: 8.h),
+        SizedBox(
+          height: 44.h,
+          child: Obx(() {
+            final currentText = controller.selectedAmount.value;
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: MobileRechargeController.quickAmounts.length,
+              separatorBuilder: (context, index) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                final amount = MobileRechargeController.quickAmounts[index];
+                final isSelected = currentText == amount.toString();
+                return _buildAmountChip(
+                  amount: amount,
+                  isSelected: isSelected,
+                  isDark: isDark,
+                  onTap: () => controller.selectQuickAmount(amount),
+                );
+              },
+            );
+          }),
+        ),
       ],
     );
   }
@@ -59,39 +69,39 @@ class AmountSelector extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF4B68FF)
-              : isDark
-              ? const Color(0xFF1E1E2E)
-              : Colors.white,
+              ? AppColors.primary
+              : AppStyleColors.instance.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF4B68FF)
+                ? AppColors.primary
                 : isDark
-                ? Colors.white12
-                : Colors.grey.shade300,
+                ? AppColors.white.withValues(alpha: 0.08)
+                : AppColors.grey,
             width: 1.5,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF4B68FF).withValues(alpha: 0.25),
+                    color: AppColors.primary.withValues(alpha: 0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
                 ]
               : null,
         ),
-        child: Text(
-          '৳$amount',
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            color: isSelected
-                ? Colors.white
-                : isDark
-                ? Colors.white70
-                : Colors.black87,
+        child: Center(
+          child: Text(
+            '৳$amount',
+            style: getBoldTextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                  ? AppColors.white
+                  : isDark
+                  ? AppColors.white.withValues(alpha: 0.7)
+                  : AppColors.dark,
+            ),
           ),
         ),
       ),

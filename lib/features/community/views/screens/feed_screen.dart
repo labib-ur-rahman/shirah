@@ -21,6 +21,7 @@ class FeedScreen extends StatelessWidget {
     final controller = Get.put(FeedController());
 
     return Scaffold(
+      backgroundColor: colors.background,
       appBar: _buildAppBar(isDark, colors),
       body: Obx(() {
         if (controller.isLoading.value && controller.posts.isEmpty) {
@@ -81,7 +82,7 @@ class FeedScreen extends StatelessWidget {
   /// App Bar
   PreferredSizeWidget _buildAppBar(bool isDark, AppStyleColors colors) {
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF0F0F1A) : Colors.white,
+      backgroundColor: colors.background,
       elevation: 0,
       scrolledUnderElevation: 0.5,
       leading: IconButton(

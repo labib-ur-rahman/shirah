@@ -53,6 +53,7 @@ class HomeScreen extends StatelessWidget {
     // Initial loading
     if (controller.isLoading.value && controller.feedItems.isEmpty) {
       return ListView(
+        controller: controller.scrollController,
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
@@ -70,6 +71,7 @@ class HomeScreen extends StatelessWidget {
     // Empty feed
     if (!controller.isLoading.value && controller.feedItems.isEmpty) {
       return ListView(
+        controller: controller.scrollController,
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
@@ -96,6 +98,7 @@ class HomeScreen extends StatelessWidget {
         return false;
       },
       child: ListView.builder(
+        controller: controller.scrollController,
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),

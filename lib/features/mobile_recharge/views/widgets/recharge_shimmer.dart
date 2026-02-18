@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shirah/core/utils/constants/colors.dart';
 
 /// Shimmer loading placeholder for the recharge screen
 class RechargeShimmer extends StatefulWidget {
@@ -39,30 +40,27 @@ class _RechargeShimmerState extends State<RechargeShimmer>
       builder: (context, child) {
         final color = isDark
             ? Color.lerp(
-                const Color(0xFF1E1E2E),
-                const Color(0xFF2A2A3E),
+                AppColors.dark,
+                AppColors.darkerGrey,
                 _animation.value,
               )!
-            : Color.lerp(
-                const Color(0xFFF3F4F6),
-                const Color(0xFFE5E7EB),
-                _animation.value,
-              )!;
+            : Color.lerp(AppColors.softGrey, AppColors.grey, _animation.value)!;
 
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Column(
             children: [
               SizedBox(height: 16.h),
-              // Operator selector shimmer
+
+              /// -- Operator selector shimmer
               Row(
                 children: List.generate(
                   5,
                   (i) => Padding(
                     padding: EdgeInsets.only(right: 10.w),
                     child: Container(
-                      width: 60.w,
-                      height: 60.h,
+                      width: 62.w,
+                      height: 76.h,
                       decoration: BoxDecoration(
                         color: color,
                         borderRadius: BorderRadius.circular(14.r),
@@ -72,7 +70,32 @@ class _RechargeShimmerState extends State<RechargeShimmer>
                 ),
               ),
               SizedBox(height: 20.h),
-              // Phone input shimmer
+
+              /// -- Toggle shimmer
+              Row(
+                children: [
+                  Container(
+                    width: 100.w,
+                    height: 38.h,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Container(
+                    width: 100.w,
+                    height: 38.h,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.h),
+
+              /// -- Phone input shimmer
               Container(
                 height: 56.h,
                 decoration: BoxDecoration(
@@ -81,7 +104,8 @@ class _RechargeShimmerState extends State<RechargeShimmer>
                 ),
               ),
               SizedBox(height: 16.h),
-              // Amount input shimmer
+
+              /// -- Amount input shimmer
               Container(
                 height: 56.h,
                 decoration: BoxDecoration(
@@ -90,7 +114,8 @@ class _RechargeShimmerState extends State<RechargeShimmer>
                 ),
               ),
               SizedBox(height: 20.h),
-              // Quick amounts shimmer
+
+              /// -- Quick amounts shimmer
               Wrap(
                 spacing: 10.w,
                 runSpacing: 10.h,
@@ -106,8 +131,19 @@ class _RechargeShimmerState extends State<RechargeShimmer>
                   ),
                 ),
               ),
-              SizedBox(height: 20.h),
-              // History shimmer
+              SizedBox(height: 24.h),
+
+              /// -- Button shimmer
+              Container(
+                height: 52.h,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+              ),
+              SizedBox(height: 28.h),
+
+              /// -- History shimmer
               ...List.generate(
                 3,
                 (i) => Container(

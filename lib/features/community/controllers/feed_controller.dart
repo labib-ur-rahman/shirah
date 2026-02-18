@@ -148,7 +148,17 @@ class FeedController extends GetxController {
     final index = posts.indexWhere((p) => p.postId == postId);
     if (index == -1) return;
 
-    // Trigger list refresh by reassigning
+    final post = posts[index];
+    final updatedSummary = post.reactionSummary.applyDelta(type, delta);
+    posts[index] = post.copyWith(reactionSummary: updatedSummary);
+    posts.refresh();
+  }
+
+  /// Update a post in the feed list (used by detail screens)
+  void upsertPost(CommunityPostModel post) {
+    final index = posts.indexWhere((p) => p.postId == post.postId);
+    if (index == -1) return;
+    posts[index] = post;
     posts.refresh();
   }
 

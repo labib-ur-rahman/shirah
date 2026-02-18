@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shirah/core/utils/constants/colors.dart';
 
 /// Shimmer loading placeholder for drive offers list
 class DriveOfferShimmer extends StatefulWidget {
@@ -39,15 +40,11 @@ class _DriveOfferShimmerState extends State<DriveOfferShimmer>
       builder: (context, child) {
         final color = isDark
             ? Color.lerp(
-                const Color(0xFF1E1E2E),
-                const Color(0xFF2A2A3E),
+                AppColors.dark,
+                AppColors.darkerGrey,
                 _animation.value,
               )!
-            : Color.lerp(
-                const Color(0xFFF3F4F6),
-                const Color(0xFFE5E7EB),
-                _animation.value,
-              )!;
+            : Color.lerp(AppColors.softGrey, AppColors.grey, _animation.value)!;
 
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -56,7 +53,8 @@ class _DriveOfferShimmerState extends State<DriveOfferShimmer>
             shrinkWrap: true,
             children: [
               SizedBox(height: 12.h),
-              // Filter chips shimmer
+
+              /// -- Filter chips shimmer
               Row(
                 children: List.generate(
                   4,
@@ -74,15 +72,16 @@ class _DriveOfferShimmerState extends State<DriveOfferShimmer>
                 ),
               ),
               SizedBox(height: 16.h),
-              // Offer card shimmers (reduced to 3 for better fit)
+
+              /// -- Offer card shimmers
               ...List.generate(
-                3,
+                4,
                 (i) => Container(
-                  height: 110.h,
+                  height: 120.h,
                   margin: EdgeInsets.only(bottom: 10.h),
                   decoration: BoxDecoration(
                     color: color,
-                    borderRadius: BorderRadius.circular(14.r),
+                    borderRadius: BorderRadius.circular(16.r),
                   ),
                 ),
               ),

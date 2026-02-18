@@ -157,6 +157,9 @@ export {
   getEcareBalance,
   refreshDriveOfferCache,
   adminRechargeStatus,
+  getAdminRechargeHistory,
+  getRechargeStats,
+  adminRetryRecharge,
 } from "./features/mobile-recharge/mobile-recharge-operations";
 
 
@@ -254,4 +257,7 @@ export {
  * - getEcareBalance() [Admin]
  * - refreshDriveOfferCache() [Admin]
  * - adminRechargeStatus(refid) [Admin]
+ * - getAdminRechargeHistory(limit?, startAfter?, status?, type?, uid?) [Admin]
+ * - getRechargeStats(period?) [Admin]
+ * - adminRetryRecharge(refid) [Admin]
  */

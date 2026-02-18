@@ -1,0 +1,336 @@
+/// ============================================================================
+/// Recharge Dialog Widget — Mobile Recharge Form
+/// ============================================================================
+library;
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:shirah_admin/core/theme/app_colors.dart';
+import 'package:shirah_admin/core/utils/helpers.dart';
+import 'package:shirah_admin/modules/mobile_recharge/controllers/mobile_recharge_controller.dart';
+import 'package:shirah_admin/services/services.dart';
+
+class RechargeDialogWidget extends StatefulWidget {
+  const RechargeDialogWidget({super.key});
+
+  @override
+  State<RechargeDialogWidget> createState() => _RechargeDialogWidgetState();
+}
+
+class _RechargeDialogWidgetState extends State<RechargeDialogWidget> {
+  final _controller = Get.find<MobileRechargeController>();
+  final _phoneController = TextEditingController();
+  final _amountController = TextEditingController();
+  String _operator = 'GP';
+  String _numberType = '1';
+  bool _isSubmitting = false;
+
+  static const Map<String, String> _operators = {
+    'GP': 'Grameenphone',
+    'BL': 'Banglalink',
+    'AR': 'Airtel',
+    'RB': 'Robi',
+    'TL': 'Teletalk',
+  };
+
+  static const Map<String, String> _numberTypes = {
+    '1': 'Prepaid',
+    '2': 'Postpaid',
+  };
+  static const Map<String, String> _prefixToOperator = {
+    '016': '6',
+    '018': '8',
+    '014': '4',
+    '019': '9',
+    '013': '3',
+    '017': '7',
+    '015': '5',
+  };
+  static const Map<String, List<String>> _operatorAliases = {
+    'GP': ['3', '7'],
+    'BL': ['4', '9'],
+    'AR': ['6'],
+    'RB': ['8'],
+    'TL': ['5'],
+  };
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Iconsax.mobile, color: AppColors.primary),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Mobile Recharge',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Phone Number
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                style: const TextStyle(color: AppColors.textPrimary),
+                onChanged: _handlePhoneChanged,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  hintText: '01XXXXXXXXX',
+                  prefixIcon: const Icon(
+                    Iconsax.call,
+                    color: AppColors.primary,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.card),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Operator
+              DropdownButtonFormField<String>(
+                value: _operator,
+                items: _operators.entries
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => _operator = value ?? 'GP'),
+                dropdownColor: AppColors.surface,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Operator',
+                  prefixIcon: const Icon(
+                    Iconsax.simcard,
+                    color: AppColors.primary,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.card),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Number Type
+              DropdownButtonFormField<String>(
+                value: _numberType,
+                items: _numberTypes.entries
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _numberType = value ?? '1'),
+                dropdownColor: AppColors.surface,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Number Type',
+                  prefixIcon: const Icon(
+                    Iconsax.category,
+                    color: AppColors.primary,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.card),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Amount
+              TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Amount (BDT)',
+                  hintText: 'Enter amount',
+                  prefixIcon: const Icon(
+                    Iconsax.money,
+                    color: AppColors.primary,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.card),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        FilledButton.icon(
+          onPressed: _isSubmitting ? null : _handleSubmit,
+          icon: _isSubmitting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    color: Colors.black,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Icon(Iconsax.send_1),
+          label: Text(_isSubmitting ? 'Submitting...' : 'Submit'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleSubmit() async {
+    final phone = _phoneController.text.trim();
+    final amountText = _amountController.text.trim();
+
+    if (phone.isEmpty || amountText.isEmpty) {
+      AppHelpers.showError('Please fill all fields');
+      return;
+    }
+
+    final amount = int.tryParse(amountText);
+    if (amount == null || amount <= 0) {
+      AppHelpers.showError('Please enter a valid amount');
+      return;
+    }
+
+    final extracted = _extractOperator(phone);
+    if (extracted == null) {
+      AppHelpers.showError('Invalid phone prefix');
+      return;
+    }
+    if (!_isOperatorMatch(extracted, _operator)) {
+      AppHelpers.showError('Select the correct operator');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    LoggerService.info(
+      'Submitting recharge: phone=$phone, operator=$_operator, numberType=$_numberType, amount=$amount',
+    );
+
+    final success = await _controller.submitRecharge(
+      phone: phone,
+      operator: extracted,
+      numberType: _numberType,
+      amount: amount,
+    );
+
+    if (mounted) {
+      setState(() => _isSubmitting = false);
+      if (success) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  String? _extractOperator(String phone) {
+    if (phone.length < 3) return null;
+    return _prefixToOperator[phone.substring(0, 3)];
+  }
+
+  bool _isOperatorMatch(String extracted, String selected) {
+    final allowed = _operatorAliases[selected];
+    if (allowed == null) return false;
+    return allowed.contains(extracted);
+  }
+
+  void _handlePhoneChanged(String value) {
+    if (value.length < 3) return;
+    final extracted = _extractOperator(value);
+    if (extracted == null) return;
+    final group = _groupForOperator(extracted);
+    if (group != null && group != _operator) {
+      setState(() => _operator = group);
+    }
+  }
+
+  String? _groupForOperator(String operatorCode) {
+    for (final entry in _operatorAliases.entries) {
+      if (entry.value.contains(operatorCode)) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
+}

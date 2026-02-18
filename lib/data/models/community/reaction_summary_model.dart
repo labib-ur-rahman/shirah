@@ -52,6 +52,60 @@ class ReactionSummaryModel {
     };
   }
 
+  ReactionSummaryModel copyWith({
+    int? total,
+    int? like,
+    int? love,
+    int? insightful,
+    int? support,
+    int? inspiring,
+  }) {
+    return ReactionSummaryModel(
+      total: total ?? this.total,
+      like: like ?? this.like,
+      love: love ?? this.love,
+      insightful: insightful ?? this.insightful,
+      support: support ?? this.support,
+      inspiring: inspiring ?? this.inspiring,
+    );
+  }
+
+  ReactionSummaryModel applyDelta(String type, int delta) {
+    int clamp(int value) => value < 0 ? 0 : value;
+    final normalized = type.toUpperCase();
+
+    final nextTotal = clamp(total + delta);
+    switch (normalized) {
+      case ReactionType.like:
+        return copyWith(
+          total: nextTotal,
+          like: clamp(like + delta),
+        );
+      case ReactionType.love:
+        return copyWith(
+          total: nextTotal,
+          love: clamp(love + delta),
+        );
+      case ReactionType.insightful:
+        return copyWith(
+          total: nextTotal,
+          insightful: clamp(insightful + delta),
+        );
+      case ReactionType.support:
+        return copyWith(
+          total: nextTotal,
+          support: clamp(support + delta),
+        );
+      case ReactionType.inspiring:
+        return copyWith(
+          total: nextTotal,
+          inspiring: clamp(inspiring + delta),
+        );
+      default:
+        return copyWith(total: nextTotal);
+    }
+  }
+
   /// Get top 3 reaction types that have counts > 0
   List<String> get topReactions {
     final map = {

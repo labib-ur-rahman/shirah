@@ -93,6 +93,14 @@ class _CommunityPostCardState extends State<CommunityPostCard>
     return currentUid != null && _post!.author.uid == currentUid;
   }
 
+  CommunityPostModel? _getLivePost() {
+    if (!_isModelMode) return null;
+    final posts = FeedController.instance.posts;
+    final index = posts.indexWhere((p) => p.postId == _post!.postId);
+    if (index == -1) return _post;
+    return posts[index];
+  }
+
   @override
   void initState() {
     super.initState();
@@ -269,7 +277,7 @@ class _CommunityPostCardState extends State<CommunityPostCard>
         overlay.insert(entry);
         Future.delayed(const Duration(seconds: 1), () => entry.remove());
       },
-      child: AnimatedEmoji(emoji, size: 34.sp, repeat: true),
+      child: AnimatedEmoji(emoji, size: 40.sp, repeat: true),
     );
   }
 
@@ -442,15 +450,7 @@ class _CommunityPostCardState extends State<CommunityPostCard>
   // ==================== Reaction UI Helpers ====================
 
   /// Get the reaction icon widget based on current reaction state
-  Widget _buildLikeButtonContent(bool isDark) {
-    String? reaction;
-
-    if (_isModelMode) {
-      reaction = FeedController.instance.userReactions[_post!.postId];
-    } else {
-      reaction = _localSelectedReaction;
-    }
-
+  Widget _buildLikeButtonContent(String? reaction, bool isDark) {
     if (reaction == null) {
       return Icon(
         Iconsax.like_1,
@@ -494,13 +494,7 @@ class _CommunityPostCardState extends State<CommunityPostCard>
     }
   }
 
-  Color _getLikeColor(bool isDark) {
-    String? reaction;
-    if (_isModelMode) {
-      reaction = FeedController.instance.userReactions[_post!.postId];
-    } else {
-      reaction = _localSelectedReaction;
-    }
+  Color _getLikeColor(bool isDark, String? reaction) {
     if (reaction == null) {
       return isDark ? Colors.white54 : const Color(0xFF364153);
     }
@@ -548,18 +542,6 @@ class _CommunityPostCardState extends State<CommunityPostCard>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
         borderRadius: BorderRadius.circular(14.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 2,
-            offset: const Offset(0, -1),
-          ),
-        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -784,18 +766,7 @@ class _CommunityPostCardState extends State<CommunityPostCard>
   }
 
   /// Build stacked reaction icons (max 3, overlapping)
-  Widget _buildStackedReactionIcons() {
-    List<String> topTypes;
-
-    if (_isModelMode) {
-      topTypes = _post!.reactionSummary.topReactions.take(3).toList();
-    } else {
-      // For dummy data, show default emojis
-      topTypes = [ReactionType.love, ReactionType.like, ReactionType.inspiring];
-    }
-
-    if (topTypes.isEmpty) return const SizedBox.shrink();
-
+  Widget _buildStackedReactionIcons(List<String> topTypes) {
     // Stack icons overlapping: each icon shifted left by overlap amount
     const double iconSize = 22; // Base size for each icon
     const double overlap = 6;
@@ -829,17 +800,11 @@ class _CommunityPostCardState extends State<CommunityPostCard>
   Widget _buildActionRow(bool isDark) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      child: _isModelMode
-          ? Obx(() {
-              final userReaction =
-                  FeedController.instance.userReactions[_post!.postId];
-              return _buildActionButtons(isDark, userReaction);
-            })
-          : _buildActionButtons(isDark, _localSelectedReaction),
+      child: _buildActionButtons(isDark),
     );
   }
 
-  Widget _buildActionButtons(bool isDark, String? currentReaction) {
+  Widget _buildActionButtons(bool isDark) {
     return Row(
       children: [
         /// Like button
@@ -849,21 +814,7 @@ class _CommunityPostCardState extends State<CommunityPostCard>
           onLongPress: _showReactionPopup,
           child: Padding(
             padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 8.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildLikeButtonContent(isDark),
-                SizedBox(width: 6.w),
-                Text(
-                  '$_likes',
-                  style: getTextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: _getLikeColor(isDark),
-                  ),
-                ),
-              ],
-            ),
+            child: _buildLikeButton(isDark),
           ),
         ),
 
@@ -883,20 +834,7 @@ class _CommunityPostCardState extends State<CommunityPostCard>
                 SizedBox(width: 6.w),
 
                 /// -- Right side: Comment count
-                if (_commentCount > 0)
-                  GestureDetector(
-                    onTap: _navigateToDetail,
-                    child: Text(
-                      '$_commentCount',
-                      style: getTextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? Colors.white54
-                            : const Color(0xFF364153),
-                      ),
-                    ),
-                  ),
+                _buildCommentCount(isDark),
               ],
             ),
           ),
@@ -917,15 +855,109 @@ class _CommunityPostCardState extends State<CommunityPostCard>
 
         Spacer(),
 
-        /// -- Left side: Stacked reaction icons + count
-        if (_likes > 0)
-          GestureDetector(
-            onTap: _navigateToReactions,
-            child: _buildStackedReactionIcons(),
-          ),
+        /// -- Right side: Stacked reaction icons
+        _buildStackedReactions(),
 
         8.horizontalSpace,
       ],
     );
+  }
+
+  Widget _buildLikeButton(bool isDark) {
+    if (!_isModelMode) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildLikeButtonContent(_localSelectedReaction, isDark),
+          SizedBox(width: 6.w),
+          Text(
+            '$_likes',
+            style: getTextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: _getLikeColor(isDark, _localSelectedReaction),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Obx(() {
+      final reaction = FeedController.instance.userReactions[_post!.postId];
+      final livePost = _getLivePost();
+      final likeCount = livePost?.totalReactions ?? _likes;
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildLikeButtonContent(reaction, isDark),
+          SizedBox(width: 6.w),
+          Text(
+            '$likeCount',
+            style: getTextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: _getLikeColor(isDark, reaction),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildCommentCount(bool isDark) {
+    if (!_isModelMode) {
+      if (_commentCount <= 0) return const SizedBox.shrink();
+      return GestureDetector(
+        onTap: _navigateToDetail,
+        child: Text(
+          '$_commentCount',
+          style: getTextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white54 : const Color(0xFF364153),
+          ),
+        ),
+      );
+    }
+
+    return Obx(() {
+      final livePost = _getLivePost();
+      final commentCount = livePost?.commentCount ?? _commentCount;
+      if (commentCount <= 0) return const SizedBox.shrink();
+      return GestureDetector(
+        onTap: _navigateToDetail,
+        child: Text(
+          '$commentCount',
+          style: getTextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white54 : const Color(0xFF364153),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildStackedReactions() {
+    if (!_isModelMode) {
+      if (_likes <= 0) return const SizedBox.shrink();
+      return GestureDetector(
+        onTap: _navigateToReactions,
+        child: _buildStackedReactionIcons(
+          [ReactionType.love, ReactionType.like, ReactionType.inspiring],
+        ),
+      );
+    }
+
+    return Obx(() {
+      final livePost = _getLivePost();
+      final topTypes =
+          livePost?.reactionSummary.topReactions.take(3).toList() ?? [];
+      if (topTypes.isEmpty) return const SizedBox.shrink();
+      return GestureDetector(
+        onTap: _navigateToReactions,
+        child: _buildStackedReactionIcons(topTypes),
+      );
+    });
   }
 }

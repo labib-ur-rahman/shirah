@@ -89,9 +89,8 @@ class StyleScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'shirah',
-                style: TextStyle(
-                  fontFamily: 'K2D',
+                'SHIRAH',
+                style: getK2DTextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 24.sp,
                   color: Colors.white,
@@ -105,8 +104,7 @@ class StyleScreen extends StatelessWidget {
               ),
               Text(
                 AppStrings.homeTitle,
-                style: TextStyle(
-                  fontFamily: 'Imperial Script',
+                style: getImperialScriptTextStyle(
                   fontSize: 18.sp,
                   color: Colors.white,
                 ),
