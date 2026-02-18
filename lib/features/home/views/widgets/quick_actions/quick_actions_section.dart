@@ -42,18 +42,6 @@ class QuickActionsSection extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
             borderRadius: BorderRadius.circular(16.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
             border: isDark
                 ? Border.all(
                     color: Colors.white.withValues(alpha: 0.08),

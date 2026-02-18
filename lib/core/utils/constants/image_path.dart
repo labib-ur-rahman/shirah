@@ -15,5 +15,7 @@ class ImagePath {
   static const String reactionSupport = 'assets/images/reaction_support.png';
   static const String reactionInspiring = 'assets/images/reaction_inspiring.png';
 
-  
+  /// -- Wallet Icons
+  static const String walletOutline = 'assets/images/tab-wallet-outline.png';
+  static const String walletFill = 'assets/images/tab-wallet-fill.png';
 }

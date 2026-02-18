@@ -29,10 +29,8 @@ class PostDetailScreen extends StatelessWidget {
     controller.loadPost(postId);
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0A0A14)
-          : const Color(0xFFF3F4F6),
-      appBar: _buildAppBar(isDark, controller),
+      backgroundColor: colors.background,
+      appBar: _buildAppBar(isDark, controller, colors),
       body: Column(
         children: [
           /// -- Scrollable content
@@ -96,9 +94,11 @@ class PostDetailScreen extends StatelessWidget {
   PreferredSizeWidget _buildAppBar(
     bool isDark,
     PostDetailController controller,
+    AppStyleColors colors,
   ) {
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF0F0F1A) : Colors.white,
+      backgroundColor: colors.background,
+
       elevation: 0,
       scrolledUnderElevation: 0.5,
       leading: IconButton(
@@ -242,7 +242,7 @@ class PostDetailScreen extends StatelessWidget {
     AppStyleColors colors,
   ) {
     return Container(
-      color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+      color: colors.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -774,7 +774,7 @@ class PostDetailScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(16.w, 8.h, 8.w, 8.h),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+        color: colors.surface,
         border: Border(
           top: BorderSide(
             color: isDark

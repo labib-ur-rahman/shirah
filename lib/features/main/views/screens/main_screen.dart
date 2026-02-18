@@ -11,7 +11,7 @@ import 'package:shirah/features/main/views/screens/projects_tab.dart';
 import 'package:shirah/features/main/views/screens/shop_tab.dart';
 import 'package:shirah/features/main/views/screens/activities_tab.dart';
 import 'package:shirah/features/main/views/screens/profile_tab.dart';
-import 'package:shirah/features/main/views/screens/inbox_tab.dart';
+import 'package:shirah/features/main/views/screens/wallet_tab.dart';
 import 'package:shirah/features/main/views/widgets/app_drawer.dart';
 
 /// Main container with TabBar and TabBarView for swipeable navigation
@@ -25,7 +25,7 @@ import 'package:shirah/features/main/views/widgets/app_drawer.dart';
 /// ✅ Single source of truth: SLHelper.isDarkMode
 ///
 /// Obx Usage:
-/// - Only for .obs variables (isInboxVisible, isDrawerOpen)
+/// - Only for .obs variables (isWalletVisible, isDrawerOpen)
 /// - NOT for theme (GetBuilder handles theme reactivity)
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key, this.initialIndex = 0});
@@ -66,14 +66,14 @@ class MainScreen extends StatelessWidget {
                     /// -- Tab Bar Header (Collapsible)
                     const MainTabBar(),
 
-                    /// -- Content Area (Tab View or Inbox)
-                    /// Obx here: watches controller.isInboxVisible (.obs)
+                    /// -- Content Area (Tab View or Wallet)
+                    /// Obx here: watches controller.isWalletVisible (.obs)
                     Expanded(
                       child: Obx(() {
-                        if (controller.isInboxVisible) {
+                        if (controller.isWalletVisible) {
                           return NotificationListener<ScrollNotification>(
                             onNotification: controller.handleScroll,
-                            child: const InboxTab(),
+                            child: const WalletTab(),
                           );
                         }
 

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shirah/core/common/widgets/custom_shapes/curved_edges/curved_edges_widget.dart';
 import 'package:shirah/core/services/theme_service.dart';
+import 'package:shirah/core/utils/constants/image_path.dart';
 import 'package:shirah/core/utils/constants/svg_path.dart';
 import 'package:shirah/core/utils/constants/app_style_colors.dart';
 import 'package:shirah/core/utils/helpers/svg_icon_helper.dart';
@@ -109,17 +110,28 @@ class MainTabBar extends StatelessWidget {
 
                               const Spacer(),
 
-                              /// -- Inbox Icon
-                              GestureDetector(
-                                onTap: () => controller.showInbox(),
-                                child: SvgIconHelper.buildIcon(
-                                  assetPath: SvgPath.walletUnselected,
-                                  size: 26,
-                                  color: Colors.white,
+                              /// -- Wallet Icon
+                              Obx(
+                                () => GestureDetector(
+                                  onTap: () => controller.toggleWallet(),
+                                  child: controller.isWalletVisible
+                                      ? Image.asset(
+                                          controller.isWalletVisible
+                                              ? ImagePath.walletFill
+                                              : ImagePath.walletOutline,
+                                          width: 24.w,
+                                          height: 20.h,
+                                        )
+                                      : SvgIconHelper.buildIcon(
+                                          assetPath: controller.isWalletVisible
+                                              ? SvgPath.walletSelected
+                                              : SvgPath.walletUnselected,
+                                          color: Colors.white,
+                                        ),
                                 ),
                               ),
 
-                              16.horizontalSpace,
+                              20.horizontalSpace,
 
                               /// -- Menu Icon
                               GestureDetector(
@@ -150,11 +162,15 @@ class MainTabBar extends StatelessWidget {
                           () => TabBar(
                             controller: controller.tabController,
                             onTap: (index) => controller.changeTab(index),
-                            // Hide indicator when inbox is visible
-                            indicatorColor: controller.isInboxVisible
-                                ? Colors.transparent
-                                : Colors.white,
-                            indicatorWeight: 3,
+                            // Hide indicator when wallet is visible
+                            indicator: controller.isWalletVisible
+                                ? const BoxDecoration()
+                                : const UnderlineTabIndicator(
+                                    borderSide: BorderSide(
+                                      width: 3,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                             indicatorSize: TabBarIndicatorSize.label,
                             labelPadding: EdgeInsets.zero,
                             dividerColor: Colors.transparent,

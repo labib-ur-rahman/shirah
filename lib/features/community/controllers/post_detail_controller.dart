@@ -5,6 +5,7 @@ import 'package:shirah/data/models/community/comment_model.dart';
 import 'package:shirah/data/models/community/community_post_model.dart';
 import 'package:shirah/data/models/community/reply_model.dart';
 import 'package:shirah/data/repositories/community_repository.dart';
+import 'package:shirah/features/community/controllers/feed_controller.dart';
 
 /// Post Detail Controller - Manages post detail view with comments & replies
 class PostDetailController extends GetxController {
@@ -89,6 +90,9 @@ class PostDetailController extends GetxController {
       // Refresh comments and post (for updated commentCount)
       await loadComments(post.value!.postId);
       post.value = await _repository.getPost(post.value!.postId);
+      if (post.value != null) {
+        FeedController.instance.upsertPost(post.value!);
+      }
 
       LoggerService.info('💬 Comment submitted');
     } catch (e) {

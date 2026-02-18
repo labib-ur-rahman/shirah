@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-/// Main Header Controller - Manages the main screen tabs, header state, inbox and drawer
+/// Main Header Controller - Manages the main screen tabs, header state, wallet and drawer
 ///
 /// Features:
 /// - Tab controller for 5 main tabs (Home, Projects, Shop, Activities, Profile)
-/// - Screen title management based on active tab or special screens (Inbox)
+/// - Screen title management based on active tab or special screens (Wallet)
 /// - Tab state tracking with reactive updates
 /// - Header collapse/expand on scroll with animations
-/// - Inbox screen overlay management
+/// - Wallet screen overlay management
 /// - Custom drawer visibility control
 ///
 /// Usage:
 /// ```dart
 /// final controller = MainHeaderController.instance;
 /// controller.changeTab(2); // Switch to Shop tab
-/// controller.showInbox(); // Show inbox screen
+/// controller.toggleWallet(); // Toggle wallet screen visibility
 /// controller.openDrawer(); // Open settings drawer
 /// ```
 class MainHeaderController extends GetxController
@@ -65,13 +65,13 @@ class MainHeaderController extends GetxController
   /// Scroll threshold to trigger collapse/expand
   static const double scrollThreshold = 10.0;
 
-  // ==================== Inbox State ====================
+  // ==================== Wallet State ====================
 
-  /// Whether inbox screen is currently visible
-  final RxBool _isInboxVisible = false.obs;
+  /// Whether wallet screen is currently visible
+  final RxBool _isWalletVisible = false.obs;
 
-  /// Get inbox visibility state
-  bool get isInboxVisible => _isInboxVisible.value;
+  /// Get wallet visibility state
+  bool get isWalletVisible => _isWalletVisible.value;
 
   // ==================== Drawer State ====================
 
@@ -91,9 +91,9 @@ class MainHeaderController extends GetxController
 
   /// Screen title based on current tab or special screen
   String get screenTitle {
-    // If inbox is visible, show "Inbox"
-    if (_isInboxVisible.value) {
-      return 'Inbox';
+    // If wallet is visible, show "Wallet"
+    if (_isWalletVisible.value) {
+      return 'Wallet';
     }
 
     switch (_currentTabIndex.value) {
@@ -188,9 +188,9 @@ class MainHeaderController extends GetxController
   void _onTabChanged() {
     if (!tabController.indexIsChanging) {
       _currentTabIndex.value = tabController.index;
-      // Hide inbox when switching tabs
-      if (_isInboxVisible.value) {
-        _isInboxVisible.value = false;
+      // Hide wallet when switching tabs
+      if (_isWalletVisible.value) {
+        _isWalletVisible.value = false;
       }
     }
   }
@@ -248,37 +248,37 @@ class MainHeaderController extends GetxController
     if (index >= 0 && index < tabCount) {
       _currentTabIndex.value = index;
       tabController.animateTo(index);
-      // Hide inbox when changing to a tab
-      if (_isInboxVisible.value) {
-        _isInboxVisible.value = false;
+      // Hide wallet when changing to a tab
+      if (_isWalletVisible.value) {
+        _isWalletVisible.value = false;
       }
     }
   }
 
   /// Check if a specific tab is active
   bool isTabActive(int index) =>
-      _currentTabIndex.value == index && !_isInboxVisible.value;
+      _currentTabIndex.value == index && !_isWalletVisible.value;
 
-  // ==================== Inbox Methods ====================
+  // ==================== Wallet Methods ====================
 
-  /// Show inbox screen
-  void showInbox() {
-    _isInboxVisible.value = true;
-    // Expand header when showing inbox
+  /// Show wallet screen
+  void showWallet() {
+    _isWalletVisible.value = true;
+    // Expand header when showing wallet
     expandHeader();
   }
 
-  /// Hide inbox screen and return to previous tab
-  void hideInbox() {
-    _isInboxVisible.value = false;
+  /// Hide wallet screen and return to previous tab
+  void hideWallet() {
+    _isWalletVisible.value = false;
   }
 
-  /// Toggle inbox visibility
-  void toggleInbox() {
-    if (_isInboxVisible.value) {
-      hideInbox();
+  /// Toggle wallet visibility
+  void toggleWallet() {
+    if (_isWalletVisible.value) {
+      hideWallet();
     } else {
-      showInbox();
+      showWallet();
     }
   }
 
