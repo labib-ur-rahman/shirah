@@ -110,7 +110,7 @@ export const createCommunityPost = functions.https.onCall(
       );
     }
 
-    const validPrivacy = ["public", "friends", "only_me"];
+    const validPrivacy = ["PUBLIC", "FRIENDS", "ONLY_ME"];
     if (privacy && !validPrivacy.includes(privacy)) {
       throw new functions.https.HttpsError(
         "invalid-argument",
@@ -130,7 +130,7 @@ export const createCommunityPost = functions.https.onCall(
         text: text || "",
         images: images || [],
       },
-      privacy: privacy || "public",
+      privacy: privacy || "PUBLIC",
       status: POST_STATUS.APPROVED, // Auto-approve for now
       reactionSummary: emptyReactionSummary(),
       commentCount: 0,
@@ -437,7 +437,8 @@ export const moderatePost = functions.https.onCall(
       );
     }
 
-    if (!["approve", "reject"].includes(action)) {
+    const normalizedAction = action.toLowerCase();
+    if (!["approve", "reject"].includes(normalizedAction)) {
       throw new functions.https.HttpsError(
         "invalid-argument",
         "Action must be 'approve' or 'reject'"
@@ -451,7 +452,7 @@ export const moderatePost = functions.https.onCall(
     }
 
     const newStatus =
-      action === "approve" ? POST_STATUS.APPROVED : POST_STATUS.REJECTED;
+      normalizedAction === "approve" ? POST_STATUS.APPROVED : POST_STATUS.REJECTED;
 
     await postRef.update({
       status: newStatus,
@@ -471,14 +472,6 @@ export const moderatePost = functions.https.onCall(
     };
     return response;
   });
-
-// ============================================
-// DELETE POST (Soft Delete)
-// ============================================
-
-/**
- * 
-);
 
 // ============================================
 // DELETE POST (Soft Delete)
@@ -538,3 +531,86 @@ export const deleteCommunityPost = functions.https.onCall(
     };
     return response;
   });
+
+// ============================================
+// ADMIN EDIT POST
+// ============================================
+
+/**
+ * Admin edit a community post content with mandatory review note
+ * Only admins and superadmins can call this
+ */
+export const adminEditPost = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<{
+      postId: string;
+      text: string;
+      images: string[];
+      reviewNote: string;
+    }>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const { postId, text, images, reviewNote } = request.data;
+
+    // Validate required fields
+    if (!postId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Post ID is required"
+      );
+    }
+    if (!reviewNote || reviewNote.trim().length === 0) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Review note is required when editing a post"
+      );
+    }
+
+    // Verify admin role
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "User not found"
+      );
+    }
+    const userData = userDoc.data() as UserDocument;
+    const allowedRoles = [
+      USER_ROLES.SUPER_ADMIN,
+      USER_ROLES.ADMIN,
+    ];
+    if (!allowedRoles.includes(userData.role as any)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins and super admins can edit posts"
+      );
+    }
+
+    // Verify post exists
+    const postRef = db.collection(COLLECTIONS.POSTS).doc(postId);
+    const postDoc = await postRef.get();
+    if (!postDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Post not found");
+    }
+
+    // Update post content
+    await postRef.update({
+      "content.text": text ?? "",
+      "content.images": images ?? [],
+      reviewNote: reviewNote.trim(),
+      updatedBy: uid,
+      updatedAt: serverTimestamp(),
+    });
+
+    functions.logger.info(
+      `Admin ${uid} edited post ${postId}: ${reviewNote}`
+    );
+
+    const response: ApiResponse = {
+      success: true,
+      message: "Post updated successfully",
+    };
+    return response;
+  }
+);

@@ -372,8 +372,8 @@ export interface CommunityPost {
   postId: string;
   author: PostAuthor;
   content: PostContent;
-  privacy: "public" | "friends" | "only_me";
-  status: "pending" | "approved" | "rejected";
+  privacy: "PUBLIC" | "FRIENDS" | "ONLY_ME";
+  status: "PENDING" | "APPROVED" | "REJECTED";
   reactionSummary: PostReactionSummary;
   commentCount: number;
   shareCount: number;
@@ -414,7 +414,7 @@ export interface PostReply {
 export interface CreatePostRequest {
   text: string;
   images: string[];
-  privacy: "public" | "friends" | "only_me";
+  privacy: "PUBLIC" | "FRIENDS" | "ONLY_ME";
 }
 
 export interface ToggleReactionRequest {
@@ -494,6 +494,33 @@ export interface AdminCreateNativeAdRequest {
   minGap?: number;
   maxPerSession?: number;
 }
+
+export interface DeleteFeedItemRequest {
+  feedId: string;
+}
+
+export interface ToggleFeedPinRequest {
+  feedId: string;
+}
+
+export interface BulkUpdateFeedStatusRequest {
+  feedIds: string[];
+  status: string;
+  reason?: string;
+}
+
+export interface EmergencyPauseAdsRequest {
+  pause: boolean;
+  reason?: string;
+}
+
+export interface GetAdminFeedItemsRequest {
+  limit?: number;
+  status?: string;
+  type?: string;
+  startAfterFeedId?: string;
+}
+
 
 // ============================================
 // MOBILE RECHARGE TYPES

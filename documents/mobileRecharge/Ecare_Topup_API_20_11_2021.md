@@ -550,7 +550,7 @@ Drive offer packs are purchased **through the same Recharge API** (`service=MRC`
 - The user receives the pack benefits (data/minutes/validity), NOT balance.
 
 ```
-operator    = mapped from _operator (GP→7, BL→4, RB→8, AR→6, TL→5)
+operator    = mapped from _operator (GP→7, GP→3, BL→9, BL→4, RB→8, AR→6, TL→5)
 number_type = _number_type from the offer pack (usually "1" for Prepaid)
 amount      = _amount from the offer pack (exact match required)
 number      = user-entered phone number
@@ -1159,23 +1159,12 @@ const OFFER_TO_RECHARGE_MAP = {
 };
 ```
 
----
 
-## 1️⃣2️⃣ ECARE Provider Contact
+> Remember : `017********` and the `013********` are both Grameenphone SIM Operator phone number. Also `019********` and the `014********` are both Banglalink SIM Operator phone number.
 
-| Info | Value |
-|------|-------|
-| Company | ECARE Technology |
-| Website | `www.ect.com.bd` |
-| Email | `ecarebd247@gmail.com` |
-| Skype | `ecarebd247` |
-| Helpline | `+88 01613094989` (WhatsApp & IMO) |
-| Address | House #32/B/1, Road #16/B, Comfort Housing Society, Adabor, Dhaka-1207, Bangladesh |
-| API Docs Version | `2021.11.20.007` |
-| Original PDF | `documents/mobileRecharge/Ecare_Topup_API_20_11_2021.pdf` |
-| Offer Response Sample | `documents/mobileRecharge/offer_pack_response.json` |
 
 ---
+
 
 ## 📌 Quick Constants Reference
 

@@ -352,6 +352,84 @@ export const getAvailableJobs = functions.https.onCall(
 );
 
 // ============================================
+// GET ADMIN JOBS (All jobs for admin panel)
+// ============================================
+
+/**
+ * Admin-only: Get all jobs with optional status filter
+ */
+export const getAdminJobs = functions.https.onCall(
+  { region: REGION },
+  async (
+    request: functions.https.CallableRequest<{
+      limit?: number;
+      lastJobId?: string;
+      status?: string;
+    }>
+  ): Promise<ApiResponse> => {
+    const uid = validateAuthenticated(request.auth);
+    const { limit: queryLimit, lastJobId, status } = request.data;
+
+    // Validate admin role
+    const admin_user = await getUserByUid(uid);
+    if (!admin_user) {
+      throw new functions.https.HttpsError("not-found", "User not found");
+    }
+    validateMinimumRole(admin_user.role, USER_ROLES.ADMIN);
+
+    const limit = queryLimit || 20;
+
+    try {
+      let query: FirebaseFirestore.Query = db
+        .collection(JOB_COLLECTIONS.JOBS)
+        .orderBy("createdAt", "desc")
+        .limit(limit);
+
+      // Filter by status if provided
+      if (status && status !== "all") {
+        query = db
+          .collection(JOB_COLLECTIONS.JOBS)
+          .where("status", "==", status.toUpperCase())
+          .orderBy("createdAt", "desc")
+          .limit(limit);
+      }
+
+      // Pagination
+      if (lastJobId) {
+        const lastDoc = await db
+          .collection(JOB_COLLECTIONS.JOBS)
+          .doc(lastJobId)
+          .get();
+        if (lastDoc.exists) {
+          query = query.startAfter(lastDoc);
+        }
+      }
+
+      const snapshot = await query.get();
+      const jobs = snapshot.docs.map((doc) => doc.data());
+
+      return {
+        success: true,
+        message: "Admin jobs retrieved",
+        data: { jobs, hasMore: jobs.length === limit },
+      };
+    } catch (error: any) {
+      functions.logger.error("getAdminJobs error:", error);
+      if (error?.code === 9 || error?.message?.includes("index")) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "Database index is being built. Please try again in a few minutes."
+        );
+      }
+      throw new functions.https.HttpsError(
+        "internal",
+        error?.message || "Failed to retrieve jobs"
+      );
+    }
+  }
+);
+
+// ============================================
 // GET MICRO JOB DETAILS
 // ============================================
 
@@ -637,8 +715,8 @@ export const getMySubmissions = functions.https.onCall(
           proofText: submissionData.proofText || "",
           status: submissionData.status,
           rejectionNote: submissionData.rejectionNote || null,
-          createdAt: submissionData.createdAt,
-          reviewedAt: submissionData.reviewedAt || null,
+          createdAt: submissionData.createdAt?.toMillis?.() ?? null,
+          reviewedAt: submissionData.reviewedAt?.toMillis?.() ?? null,
           jobTitle: jobData?.title || "Unknown Job",
           jobCoverImage: jobData?.coverImage || "",
           perUserPrice: jobData?.perUserPrice || 0,
@@ -882,21 +960,22 @@ export const adminReviewJob = functions.https.onCall(
       );
     }
 
-    // Validate admin role
-    const admin_user = await getUserByUid(uid);
-    if (!admin_user) {
-      throw new functions.https.HttpsError("not-found", "User not found");
-    }
-    validateMinimumRole(admin_user.role, USER_ROLES.ADMIN);
+    try {
+      // Validate admin role
+      const admin_user = await getUserByUid(uid);
+      if (!admin_user) {
+        throw new functions.https.HttpsError("not-found", "User not found");
+      }
+      validateMinimumRole(admin_user.role, USER_ROLES.ADMIN);
 
-    const jobRef = db.collection(JOB_COLLECTIONS.JOBS).doc(jobId);
-    const jobDoc = await jobRef.get();
-    if (!jobDoc.exists) {
-      throw new functions.https.HttpsError("not-found", "Job not found");
-    }
+      const jobRef = db.collection(JOB_COLLECTIONS.JOBS).doc(jobId);
+      const jobDoc = await jobRef.get();
+      if (!jobDoc.exists) {
+        throw new functions.https.HttpsError("not-found", "Job not found");
+      }
 
-    const jobData = jobDoc.data()!;
-    const updates: Record<string, unknown> = {};
+      const jobData = jobDoc.data()!;
+      const updates: Record<string, unknown> = {};
 
     switch (action) {
       case "approve":
@@ -938,7 +1017,7 @@ export const adminReviewJob = functions.https.onCall(
             id: generateTransactionId("WTX"),
             uid: jobData.authorId,
             type: TRANSACTION_TYPES.CREDIT,
-            source: TRANSACTION_SOURCES.MICRO_JOB,
+            source: TRANSACTION_SOURCES.JOB_POST_REFUND,
             amount: refundAmount,
             balanceBefore: authorData.wallet.balanceBDT,
             balanceAfter: authorData.wallet.balanceBDT + refundAmount,
@@ -978,30 +1057,48 @@ export const adminReviewJob = functions.https.onCall(
 
     await jobRef.update(updates);
 
-    const auditAction = action === "approve"
-      ? JOB_AUDIT_ACTIONS.JOB_APPROVE
-      : action === "reject"
-      ? JOB_AUDIT_ACTIONS.JOB_REJECT
-      : action === "pause"
-      ? JOB_AUDIT_ACTIONS.JOB_PAUSE
-      : JOB_AUDIT_ACTIONS.JOB_RESUME;
+      const auditAction =
+        action === "approve"
+          ? JOB_AUDIT_ACTIONS.JOB_APPROVE
+          : action === "reject"
+          ? JOB_AUDIT_ACTIONS.JOB_REJECT
+          : action === "pause"
+          ? JOB_AUDIT_ACTIONS.JOB_PAUSE
+          : JOB_AUDIT_ACTIONS.JOB_RESUME;
 
-    await createAuditLog({
-      actorUid: uid,
-      actorRole: admin_user.role,
-      action: auditAction,
-      targetUid: jobData.authorId,
-      targetCollection: JOB_COLLECTIONS.JOBS,
-      targetDocId: jobId,
-      metadata: { action, rejectionNote },
-    });
+      await createAuditLog({
+        actorUid: uid,
+        actorRole: admin_user.role,
+        action: auditAction,
+        targetUid: jobData.authorId,
+        targetCollection: JOB_COLLECTIONS.JOBS,
+        targetDocId: jobId,
+        metadata: {
+          action,
+          ...(rejectionNote ? { rejectionNote } : {}),
+        },
+      });
 
-    functions.logger.info(`🛡️ Job ${jobId} ${action}d by admin ${uid}`);
+      functions.logger.info(`🛡️ Job ${jobId} ${action}d by admin ${uid}`);
 
-    return {
-      success: true,
-      message: `Job ${action}d successfully`,
-    };
+      return {
+        success: true,
+        message: `Job ${action}d successfully`,
+      };
+    } catch (error: any) {
+      functions.logger.error("adminReviewJob error:", error);
+      
+      // Re-throw HttpsError as-is
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      
+      // Wrap other errors
+      throw new functions.https.HttpsError(
+        "internal",
+        error?.message || "Failed to review job"
+      );
+    }
   }
 );
 
@@ -1065,30 +1162,44 @@ export const getJobSubmissions = functions.https.onCall(
 
     query = query.orderBy("createdAt", "desc").limit(queryLimit || 50);
 
-    const snapshot = await query.get();
-    
-    // Return clean serializable objects
-    const submissions = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        submissionId: doc.id,
-        jobId: data.jobId,
-        jobAuthorId: data.jobAuthorId,
-        workerId: data.workerId,
-        workerName: data.workerName,
-        proofImages: data.proofImages || [],
-        proofText: data.proofText || "",
-        status: data.status,
-        rejectionNote: data.rejectionNote || null,
-        createdAt: data.createdAt,
-        reviewedAt: data.reviewedAt || null,
-      };
-    });
+    try {
+      const snapshot = await query.get();
+      
+      // Return clean serializable objects with timestamps as millis
+      const submissions = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          submissionId: doc.id,
+          jobId: data.jobId,
+          jobAuthorId: data.jobAuthorId,
+          workerId: data.workerId,
+          workerName: data.workerName,
+          proofImages: data.proofImages || [],
+          proofText: data.proofText || "",
+          status: data.status,
+          rejectionNote: data.rejectionNote || null,
+          createdAt: data.createdAt?.toMillis?.() ?? null,
+          reviewedAt: data.reviewedAt?.toMillis?.() ?? null,
+        };
+      });
 
-    return {
-      success: true,
-      message: "Submissions retrieved",
-      data: { submissions },
-    };
+      return {
+        success: true,
+        message: "Submissions retrieved",
+        data: { submissions },
+      };
+    } catch (error: any) {
+      functions.logger.error("getJobSubmissions error:", error);
+      if (error?.code === 9 || error?.message?.includes("index")) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "Database index is being built. Please try again in a few minutes."
+        );
+      }
+      throw new functions.https.HttpsError(
+        "internal",
+        error?.message || "Failed to retrieve submissions"
+      );
+    }
   }
 );
