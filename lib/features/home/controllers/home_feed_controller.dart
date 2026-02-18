@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:shirah/core/services/logger_service.dart';
 import 'package:shirah/data/models/community/community_post_model.dart';
 import 'package:shirah/data/models/feed/feed_item_model.dart';
@@ -17,6 +18,9 @@ class HomeFeedController extends GetxController {
 
   // ==================== Dependencies ====================
   final HomeFeedRepository _repository = HomeFeedRepository.instance;
+
+  // ==================== Scroll ====================
+  final ScrollController scrollController = ScrollController();
 
   // ==================== Reactive State ====================
 
@@ -57,6 +61,12 @@ class HomeFeedController extends GetxController {
   void onInit() {
     super.onInit();
     loadFeed();
+  }
+
+  @override
+  void onClose() {
+    scrollController.dispose();
+    super.onClose();
   }
 
   // ==================== Feed Loading ====================
@@ -135,6 +145,17 @@ class HomeFeedController extends GetxController {
     resolvedPosts.clear();
     resolvedJobs.clear();
     await loadFeed();
+  }
+
+  Future<void> scrollToTopAndRefresh() async {
+    if (scrollController.hasClients) {
+      await scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+    await refreshFeed();
   }
 
   // ==================== Ad Gap Algorithm ====================

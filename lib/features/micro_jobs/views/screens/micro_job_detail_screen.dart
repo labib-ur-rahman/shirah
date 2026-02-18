@@ -3,8 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:shirah/core/common/styles/global_text_style.dart';
+import 'package:shirah/core/common/widgets/images/app_image_viewer.dart';
+import 'package:shirah/core/common/utils/in_app_browser.dart';
 import 'package:shirah/core/utils/constants/app_style_colors.dart';
 import 'package:shirah/data/models/micro_job/micro_job_model.dart';
 import 'package:shirah/features/micro_jobs/controllers/micro_job_controller.dart';
@@ -29,9 +30,7 @@ class MicroJobDetailScreen extends StatelessWidget {
     });
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0F0F1A)
-          : const Color(0xFFF8F9FB),
+      backgroundColor: colors.background,
       body: Obx(() {
         if (controller.isLoadingDetail.value) {
           return _buildLoadingState(isDark);
@@ -46,7 +45,7 @@ class MicroJobDetailScreen extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           slivers: [
             /// -- Collapsing AppBar with Cover Image
-            _buildSliverAppBar(job, isDark),
+            _buildSliverAppBar(context, job, isDark, colors),
 
             /// -- Content
             SliverToBoxAdapter(
@@ -62,7 +61,7 @@ class MicroJobDetailScreen extends StatelessWidget {
                     SizedBox(height: 16.h),
 
                     /// -- Stats Row (Per Task + Remaining)
-                    _buildStatsRow(job, isDark),
+                    _buildStatsRow(job),
                     SizedBox(height: 20.h),
 
                     /// -- Progress Bar
@@ -70,8 +69,10 @@ class MicroJobDetailScreen extends StatelessWidget {
                     SizedBox(height: 24.h),
 
                     /// -- Open Task Link Button
-                    _buildTaskLinkButton(job, isDark),
-                    SizedBox(height: 24.h),
+                    if (job.jobLink.isNotEmpty) ...[
+                      _buildTaskLinkButton(context, job, isDark),
+                      SizedBox(height: 24.h),
+                    ],
 
                     /// -- Instructions Section
                     _buildSectionHeader(
@@ -113,65 +114,84 @@ class MicroJobDetailScreen extends StatelessWidget {
 
   // ==================== Sliver AppBar ==================
 
-  Widget _buildSliverAppBar(MicroJobModel job, bool isDark) {
+  Widget _buildSliverAppBar(
+    BuildContext context,
+    MicroJobModel job,
+    bool isDark,
+    AppStyleColors colors,
+  ) {
     return SliverAppBar(
-      expandedHeight: 240.h,
+      expandedHeight: 320.h,
       pinned: true,
-      backgroundColor: isDark ? const Color(0xFF0F0F1A) : Colors.white,
+      backgroundColor: colors.background,
       leading: GestureDetector(
         onTap: () => Get.back(),
         child: Container(
           margin: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: Colors.white.withValues(alpha: 0.8),
             shape: BoxShape.circle,
           ),
-          child: Icon(Iconsax.arrow_left, color: Colors.white, size: 20.sp),
+          child: Icon(Iconsax.arrow_left, color: Colors.black, size: 22.sp),
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            CachedNetworkImage(
-              imageUrl: job.coverImage,
-              fit: BoxFit.cover,
-              placeholder: (_, __) => Container(
-                color: isDark
-                    ? const Color(0xFF2A2A3E)
-                    : const Color(0xFFF3F4F6),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: isDark ? Colors.white38 : Colors.grey,
+        background: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            if (job.coverImage.isEmpty) return;
+            AppImageViewer.open(
+              context,
+              images: [job.coverImage],
+              initialIndex: 0,
+            );
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CachedNetworkImage(
+                imageUrl: job.coverImage,
+                fit: BoxFit.fitWidth,
+                alignment: Alignment.topCenter,
+                placeholder: (_, __) => Container(
+                  color: isDark
+                      ? const Color(0xFF2A2A3E)
+                      : const Color(0xFFF3F4F6),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: isDark ? Colors.white38 : Colors.grey,
+                    ),
+                  ),
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  color: isDark
+                      ? const Color(0xFF2A2A3E)
+                      : const Color(0xFFF3F4F6),
+                  child: Icon(
+                    Iconsax.image,
+                    size: 48.sp,
+                    color: isDark ? Colors.white24 : Colors.grey,
                   ),
                 ),
               ),
-              errorWidget: (_, __, ___) => Container(
-                color: isDark
-                    ? const Color(0xFF2A2A3E)
-                    : const Color(0xFFF3F4F6),
-                child: Icon(
-                  Iconsax.image,
-                  size: 48.sp,
-                  color: isDark ? Colors.white24 : Colors.grey,
+              // Gradient overlay
+              IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.6),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-            // Gradient overlay
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.6),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -207,16 +227,21 @@ class MicroJobDetailScreen extends StatelessWidget {
 
   // ==================== Stats Row ====================
 
-  Widget _buildStatsRow(MicroJobModel job, bool isDark) {
+  Widget _buildStatsRow(MicroJobModel job) {
+    const int perTaskPoints = 5;
     return Row(
       children: [
         /// -- Per Task (Green)
         Expanded(
           child: Container(
-            padding: EdgeInsets.all(14.w),
+            padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 10.h),
             decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(12.r),
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(
+                color: const Color(0xFFDCFCE7),
+                width: 1.3,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,17 +249,43 @@ class MicroJobDetailScreen extends StatelessWidget {
                 Text(
                   'Per task',
                   style: getTextStyle(
-                    fontSize: 11,
-                    color: const Color(0xFF065F46),
+                    fontSize: 12,
+                    color: const Color(0xFF4A5565),
                   ),
                 ),
-                SizedBox(height: 2.h),
-                Text(
-                  '৳${job.perUserPrice.toStringAsFixed(0)}',
-                  style: getBoldTextStyle(
-                    fontSize: 20,
-                    color: const Color(0xFF059669),
-                  ),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Text(
+                      '৳${job.perUserPrice.toStringAsFixed(0)}',
+                      style: getBoldTextStyle(
+                        fontSize: 20,
+                        color: const Color(0xFF00A63E),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00A63E).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999.r),
+                        border: Border.all(
+                          color: const Color(0xFF00A63E)
+                              .withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Text(
+                        '+ $perTaskPoints Points',
+                        style: getBoldTextStyle(
+                          fontSize: 12,
+                          color: const Color(0xFF00A63E),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -245,65 +296,68 @@ class MicroJobDetailScreen extends StatelessWidget {
         /// -- Remaining (Orange)
         Expanded(
           child: Container(
-            padding: EdgeInsets.all(14.w),
             decoration: BoxDecoration(
-              color: const Color(0xFFFED7AA),
-              borderRadius: BorderRadius.circular(12.r),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFF7ED), Color(0xFFFFFBEB)],
+              ),
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(
+                color: const Color(0xFFFFD6A7),
+                width: 1.3,
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
               children: [
-                Text(
-                  'Remaining',
-                  style: getTextStyle(
-                    fontSize: 11,
-                    color: const Color(0xFF9A3412),
+                Positioned(
+                  top: -24.h,
+                  right: -8.w,
+                  child: Container(
+                    width: 64.w,
+                    height: 64.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0x33FFD6A8),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-                SizedBox(height: 2.h),
-                Text(
-                  '${job.remainingSlots}/${job.limit}',
-                  style: getBoldTextStyle(
-                    fontSize: 20,
-                    color: const Color(0xFFEA580C),
+                Container(
+                  padding: EdgeInsets.fromLTRB(
+                    14.w,
+                    12.h,
+                    14.w,
+                    10.h,
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(width: 10.w),
-
-        /// -- Approved (Blue)
-        Expanded(
-          child: Container(
-            padding: EdgeInsets.all(14.w),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF1E3A5F).withValues(alpha: 0.5)
-                  : const Color(0xFFDBEAFE),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Approved',
-                  style: getTextStyle(
-                    fontSize: 11,
-                    color: isDark
-                        ? const Color(0xFF93C5FD)
-                        : const Color(0xFF1E40AF),
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  '${job.approvedCount}',
-                  style: getBoldTextStyle(
-                    fontSize: 20,
-                    color: isDark
-                        ? const Color(0xFF60A5FA)
-                        : const Color(0xFF2563EB),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Remaining',
+                        style: getTextStyle(
+                          fontSize: 12,
+                          color: const Color(0xFF4A5565),
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Row(
+                        children: [
+                          Text(
+                            '${job.remainingSlots}/${job.limit}',
+                            style: getBoldTextStyle(
+                              fontSize: 20,
+                              color: const Color(0xFFF54900),
+                            ),
+                          ),
+                          SizedBox(width: 6.w),
+                          Icon(
+                            Iconsax.clock,
+                            size: 14.sp,
+                            color: const Color(0xFFF54900),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -359,47 +413,98 @@ class MicroJobDetailScreen extends StatelessWidget {
 
   // ==================== Task Link Button ====================
 
-  Widget _buildTaskLinkButton(MicroJobModel job, bool isDark) {
+  Widget _buildTaskLinkButton(
+    BuildContext context,
+    MicroJobModel job,
+    bool isDark,
+  ) {
+    if (job.jobLink.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return SizedBox(
       width: double.infinity,
-      height: 48.h,
-      child: ElevatedButton(
-        onPressed: () async {
-          final uri = Uri.tryParse(job.jobLink);
-          if (uri != null) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          padding: EdgeInsets.zero,
-        ),
+      height: 52.h,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14.r),
         child: Ink(
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
+              colors: [Color(0xFF2B7FFF), Color(0xFF9810FA)],
             ),
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(14.r),
           ),
-          child: Container(
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          child: InkWell(
+            onTap: () {
+              InAppBrowser.open(
+                context,
+                url: job.jobLink,
+                toolbarColor: const Color(0xFF2B7FFF),
+              );
+            },
+            borderRadius: BorderRadius.circular(14.r),
+            splashColor: Colors.white.withValues(alpha: 0.15),
+            highlightColor: Colors.white.withValues(alpha: 0.08),
+            child: Stack(
               children: [
-                Icon(Iconsax.link_21, size: 18.sp, color: Colors.white),
-                SizedBox(width: 10.w),
-                Text(
-                  'Open Task Link',
-                  style: getBoldTextStyle(fontSize: 15, color: Colors.white),
+                Positioned.fill(
+                  child: Transform.translate(
+                    offset: const Offset(-60, 0),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Color(0x00FFFFFF),
+                            Color(0x33FFFFFF),
+                            Color(0x00FFFFFF),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                SizedBox(width: 8.w),
-                Icon(Iconsax.export_1, size: 16.sp, color: Colors.white70),
+                Padding(
+                  padding: EdgeInsets.only(left: 10.w, right: 14.w),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36.w,
+                        height: 36.w,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Icon(
+                          Iconsax.export_2,
+                          size: 18.sp,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            'Open Task Link',
+                            style: getBoldTextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Iconsax.arrow_right_3,
+                        size: 18.sp,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

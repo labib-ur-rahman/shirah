@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shirah/core/common/widgets/shimmers/shimmer.dart';
@@ -32,12 +34,13 @@ class AppCircularImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = SLHelper.isDarkMode;
+    final size = math.min(width, height);
 
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        width: width,
-        height: height,
+        width: size,
+        height: size,
         padding: EdgeInsets.all(padding),
         decoration: BoxDecoration(
           // If image background color is null then switch it to light and dark mode color design.
@@ -45,27 +48,19 @@ class AppCircularImage extends StatelessWidget {
           borderRadius: BorderRadius.circular(100),
         ),
 
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(100),
-          child: Center(
-            child: isNetworkImage
-                ? CachedNetworkImage(
-                    fit: fit,
-                    color: overlayColor,
-                    imageUrl: image,
-                    progressIndicatorBuilder:
-                        (context, url, downloadProgress) =>
-                            AppShimmerEffect(width: 55, height: 55, radius: 55),
-                    errorWidget: (context, url, error) => placeholder != null
-                        ? Icon(placeholder, color: overlayColor)
-                        : const Icon(Icons.error),
-                  )
-                : Image(
-                    fit: fit,
-                    image: AssetImage(image),
-                    color: overlayColor,
-                  ),
-          ),
+        child: ClipOval(
+          child: isNetworkImage
+              ? CachedNetworkImage(
+                  fit: fit,
+                  color: overlayColor,
+                  imageUrl: image,
+                  progressIndicatorBuilder: (context, url, downloadProgress) =>
+                      AppShimmerEffect(width: 55, height: 55, radius: 55),
+                  errorWidget: (context, url, error) => placeholder != null
+                      ? Icon(placeholder, color: overlayColor)
+                      : const Icon(Icons.error),
+                )
+              : Image(fit: fit, image: AssetImage(image), color: overlayColor),
         ),
       ),
     );

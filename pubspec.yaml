@@ -31,12 +31,14 @@ dependencies:
   intl: ^0.20.2
   logger: ^2.6.1
   url_launcher: ^6.1.12
+  flutter_custom_tabs: ^2.5.0
   flutter_screenutil: ^5.9.3
   flutter_svg: ^2.0.10+1
   image_picker: ^1.1.2
   image: ^4.1.4
   permission_handler: ^11.0.1
   cached_network_image: ^3.4.1
+  photo_view: ^0.15.0
   connectivity_plus: ^5.0.1
   webview_flutter: ^4.13.0
   share_plus: ^10.1.4
