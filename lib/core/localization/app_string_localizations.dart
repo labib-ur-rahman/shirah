@@ -326,6 +326,45 @@ class AppStrings {
   static String get verificationPending => 'verification_pending'.tr;
   static String get verificationApproved => 'verification_approved'.tr;
   static String get verificationRejected => 'verification_rejected'.tr;
+  static String get verificationScreenTitle => 'verification_screen_title'.tr;
+  static String get verificationAlreadyDone => 'verification_already_done'.tr;
+  static String get verificationPlanTitle => 'verification_plan_title'.tr;
+  static String get verificationPlanSubtitle => 'verification_plan_subtitle'.tr;
+  static String get verificationOneTime => 'verification_one_time'.tr;
+  static String get verificationLifetimeNote => 'verification_lifetime_note'.tr;
+  static String get verificationGetVerified => 'verification_get_verified'.tr;
+  static String get verificationComplete => 'verification_complete'.tr;
+  static String get verificationIncomplete => 'verification_incomplete'.tr;
+  static String get verificationNotSubscribed =>
+      'verification_not_subscribed'.tr;
+  static String get verificationBenefitsTitle =>
+      'verification_benefits_title'.tr;
+  static String get verificationBenefit1 => 'verification_benefit_1'.tr;
+  static String get verificationBenefit1Desc =>
+      'verification_benefit_1_desc'.tr;
+  static String get verificationBenefit2 => 'verification_benefit_2'.tr;
+  static String get verificationBenefit2Desc =>
+      'verification_benefit_2_desc'.tr;
+  static String get verificationBenefit3 => 'verification_benefit_3'.tr;
+  static String get verificationBenefit3Desc =>
+      'verification_benefit_3_desc'.tr;
+  static String get verificationBenefit4 => 'verification_benefit_4'.tr;
+  static String get verificationBenefit4Desc =>
+      'verification_benefit_4_desc'.tr;
+  static String get verificationBenefit5 => 'verification_benefit_5'.tr;
+  static String get verificationBenefit5Desc =>
+      'verification_benefit_5_desc'.tr;
+  static String get verificationNoPayments => 'verification_no_payments'.tr;
+  static String get verificationPaymentHistory =>
+      'verification_payment_history'.tr;
+  static String get verificationProcessing => 'verification_processing'.tr;
+  static String get verificationSuccess => 'verification_success'.tr;
+  static String get verifyFirst => 'verify_first'.tr;
+  static String get paymentConfigError => 'payment_config_error'.tr;
+  static String get paymentBeingProcessed => 'payment_being_processed'.tr;
+  static String get paymentPendingMessage => 'payment_pending_message'.tr;
+  static String get paymentCancelledMessage => 'payment_cancelled_message'.tr;
+  static String get paymentFailedMessage => 'payment_failed_message'.tr;
 
   // ==================== Subscription ====================
   static String get subscription => 'subscription'.tr;
@@ -334,6 +373,12 @@ class AppStrings {
   static String get subscribed => 'subscribed'.tr;
   static String get subscriptionBenefits => 'subscription_benefits'.tr;
   static String get subscriptionExpires => 'subscription_expires'.tr;
+  static String get subscriptionPlanTitle => 'subscription_plan_title'.tr;
+  static String get subscriptionPlanSubtitle => 'subscription_plan_subtitle'.tr;
+  static String get subscriptionMonthly => 'subscription_monthly'.tr;
+  static String get subscriptionAlreadyActive =>
+      'subscription_already_active'.tr;
+  static String get subscriptionSuccess => 'subscription_success'.tr;
 
   // ==================== Error Messages ====================
   static String get networkError => 'network_error'.tr;

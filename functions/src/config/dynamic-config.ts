@@ -87,6 +87,13 @@ export interface WalletConfig {
   withdrawalFeePer1000: number;
 }
 
+export interface UddoktaPayConfig {
+  apiKey: string;
+  panelURL: string;
+  redirectURL: string;
+  isSandbox: boolean;
+}
+
 export interface AppConfig {
   network: NetworkConfig;
   inviteCode: InviteCodeConfig;
@@ -96,6 +103,7 @@ export interface AppConfig {
   subscription: SubscriptionConfig;
   verification: VerificationConfig;
   wallet: WalletConfig;
+  uddoktaPay: UddoktaPayConfig;
 }
 
 // ============================================
@@ -106,7 +114,7 @@ export interface AppConfig {
 export const DEFAULT_CONFIG: AppConfig = {
   network: {
     maxDepth: 15,
-    verificationDepth: 5,
+    verificationDepth: 10,
   },
 
   inviteCode: {
@@ -179,17 +187,29 @@ export const DEFAULT_CONFIG: AppConfig = {
     rewardDistributedBDT: 125, // 50% of price
     totalRewardPoints: 12500, // 125 × 100
     levelDistribution: [
-      { level: 1, percent: 40, points: 5000 },
-      { level: 2, percent: 25, points: 3125 },
-      { level: 3, percent: 15, points: 1875 },
+      { level: 1, percent: 25, points: 3125 },
+      { level: 2, percent: 15, points: 1875 },
+      { level: 3, percent: 12, points: 1500 },
       { level: 4, percent: 10, points: 1250 },
-      { level: 5, percent: 10, points: 1250 },
+      { level: 5, percent: 8, points: 1000 },
+      { level: 6, percent: 7, points: 875 },
+      { level: 7, percent: 6, points: 750 },
+      { level: 8, percent: 6, points: 750 },
+      { level: 9, percent: 6, points: 750 },
+      { level: 10, percent: 5, points: 625 },
     ],
   },
 
   wallet: {
     minWithdrawalBDT: 100,
     withdrawalFeePer1000: 20, // 20 BDT per 1000
+  },
+
+  uddoktaPay: {
+    apiKey: "",
+    panelURL: "",
+    redirectURL: "",
+    isSandbox: true,
   },
 };
 
@@ -310,6 +330,10 @@ function mergeWithDefaults(data: Record<string, unknown>): AppConfig {
     wallet: {
       ...DEFAULT_CONFIG.wallet,
       ...asSection<WalletConfig>("wallet"),
+    },
+    uddoktaPay: {
+      ...DEFAULT_CONFIG.uddoktaPay,
+      ...asSection<UddoktaPayConfig>("uddoktaPay"),
     },
   };
 }

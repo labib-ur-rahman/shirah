@@ -149,6 +149,10 @@ class AppRoutes {
   /// Notifications
   static const String NOTIFICATIONS = '/notifications';
 
+  // ==================== Verification & Subscription Routes ====================
+  /// Verification / Premium Account screen
+  static const String VERIFICATION = '/verification';
+
   // ==================== Admin Panel Routes ====================
   /// Admin Feed Management
   static const String ADMIN_FEED_MANAGEMENT = '/admin-feed-management';
@@ -220,6 +224,9 @@ class AppRoutes {
   static String getReferralsScreen() => REFERRALS;
   static String getSettingsScreen() => SETTINGS;
   static String getNotificationsScreen() => NOTIFICATIONS;
+
+  // Verification
+  static String getVerificationScreen() => VERIFICATION;
 
   // Admin Panel
   static String getAdminFeedManagementScreen() => ADMIN_FEED_MANAGEMENT;

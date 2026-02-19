@@ -8,7 +8,7 @@
 
 ---
 
-## 📋 Collections Overview (18 Total)
+## 📋 Collections Overview (20 Total)
 
 | # | Collection | Document ID | Purpose |
 |---|-----------|-------------|---------|
@@ -30,6 +30,8 @@
 | 16 | `home_feeds` | `{feedId}` | Unified home feed index (presentation & ordering layer) |
 | 17 | `mobile_recharge` | `{refid}` | Mobile recharge & drive offer transaction history |
 | 18 | `drive_offer_cache` | `latest` | Cached ECARE drive offer pack list |
+| 19 | `payment_transactions` | `{autoId}` | UddoktaPay payment transactions for verification/subscription |
+| 20 | `app_funding_transactions` | `{autoId}` | Undistributed commission records (missing/unverified uplines) |
 
 ---
 
@@ -1161,6 +1163,90 @@ offers.filter(o => o.operator === "GP" && o.offerType === "IN")
 
 # Amount range
 offers.filter(o => o.amount >= 100 && o.amount <= 500)
+```
+
+---
+
+## 1️⃣9️⃣ `payment_transactions` Collection — Payment Gateway Transactions
+
+> Tracks all payments made through UddoktaPay for verification and subscription purchases.
+> Created by Cloud Functions after UddoktaPay callback.
+
+```
+payment_transactions (Collection)
+└── {autoId} (Document)
+    ├── id : String                      # Same as document ID
+    ├── uid : String                     # User who made the payment
+    ├── type : String                    # ENUM: "verification" | "subscription"
+    ├── amount : Number                  # Payment amount in BDT
+    ├── status : String                  # ENUM: "pending" | "completed" | "canceled" | "failed"
+    ├── paymentMethod : String           # e.g., "bkash", "nagad", "rocket"
+    ├── invoiceId : String               # UddoktaPay invoice ID
+    ├── transactionId : String           # UddoktaPay transaction ID
+    ├── senderNumber : String            # Sender's mobile number
+    ├── fee : String                     # Payment gateway fee
+    ├── chargedAmount : String           # Total charged amount
+    ├── uddoktapayResponse : Map         # Full raw response from UddoktaPay
+    ├── processedBy : String?            # "system" or admin UID (for manual approval)
+    ├── processedAt : Timestamp?         # When verification/subscription was processed
+    ├── createdAt : Timestamp            # Payment creation time
+    └── updatedAt : Timestamp            # Last update time
+```
+
+### Indexes Required
+```
+payment_transactions: uid ASC + createdAt DESC
+payment_transactions: status ASC + createdAt DESC
+```
+
+### Key Queries
+```
+# User's payment history
+db.collection('payment_transactions').where('uid', '==', uid).orderBy('createdAt', 'desc')
+
+# Admin: Pending payments
+db.collection('payment_transactions').where('status', '==', 'pending').orderBy('createdAt', 'desc')
+
+# Admin: Filter by status
+db.collection('payment_transactions').where('status', '==', status).orderBy('createdAt', 'desc')
+```
+
+---
+
+## 2️⃣0️⃣ `app_funding_transactions` Collection — Undistributed Commission Ledger
+
+> Records reward points that could NOT be distributed to uplines (missing or unverified).
+> These points go to app funding instead of being lost.
+> Created during verification/subscription processing when upline chain has gaps.
+
+```
+app_funding_transactions (Collection)
+└── {autoId} (Document)
+    ├── id : String                      # Same as document ID
+    ├── type : String                    # ENUM: "verification" | "subscription"
+    ├── sourceUid : String               # User whose payment triggered this
+    ├── level : Number                   # Upline level that couldn't receive (1-15)
+    ├── targetUplineUid : String?        # The upline UID that was supposed to receive (null if missing)
+    ├── reason : String                  # ENUM: "missing_upline" | "unverified_upline"
+    ├── points : Number                  # Reward points that went undistributed
+    ├── paymentTransactionId : String    # Reference to the payment_transactions doc
+    ├── createdAt : Timestamp            # When the record was created
+    └── metadata : Map?                  # Additional context data
+```
+
+### Key Business Rules
+```
+1. When distributing verification rewards (10 levels):
+   - If upline at level N is missing → log "missing_upline" + continue to next level
+   - If upline at level N is unverified → log "unverified_upline" + continue to next level
+   - If upline at level N is verified → distribute reward points normally
+
+2. When distributing subscription rewards (15 levels):
+   - Same logic as verification but across 15 levels
+
+3. Total points for any level are: levelPercentage × totalAmount
+   - These points are NOT lost — they are tracked for accounting
+   - Admin can audit why commissions went undistributed
 ```
 
 ---

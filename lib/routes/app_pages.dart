@@ -21,6 +21,7 @@ import 'package:shirah/features/personalization/onboarding/views/screens/onboard
 import 'package:shirah/features/personalization/onboarding/views/screens/style_screen.dart';
 import 'package:shirah/features/personalization/onboarding/views/screens/theme_screen.dart';
 import 'package:shirah/features/personalization/splash/views/screens/splash_screen.dart';
+import 'package:shirah/features/verification/views/screens/verification_screen.dart';
 
 import 'app_routes.dart';
 
@@ -157,6 +158,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.JOB_SUBMISSIONS,
       page: () => const JobSubmissionsScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+
+    // ==================== Verification & Subscription ====================
+    GetPage(
+      name: AppRoutes.VERIFICATION,
+      page: () => const VerificationScreen(),
       transition: Transition.rightToLeftWithFade,
       transitionDuration: const Duration(milliseconds: 400),
     ),

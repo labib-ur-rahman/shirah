@@ -21,6 +21,7 @@ import 'package:shirah/features/personalization/onboarding/controllers/style_con
 import 'package:shirah/features/personalization/onboarding/controllers/theme_controller.dart';
 import 'package:shirah/features/profile/controllers/user_controller.dart';
 import 'package:shirah/features/rewards/controllers/reward_controller.dart';
+import 'package:shirah/features/verification/controllers/verification_controller.dart';
 import 'package:shirah/features/wallet/controllers/wallet_controller.dart';
 
 /// Initial Binding - Sets up initial dependencies when app starts
@@ -103,6 +104,13 @@ class InitialBinding extends Bindings {
     // Worker Submissions Controller - Worker's own submission history
     Get.lazyPut<WorkerSubmissionsController>(
       () => WorkerSubmissionsController(),
+      fenix: true,
+    );
+
+    // ==================== Verification & Subscription ====================
+    // Verification Controller - Account verification and subscription
+    Get.lazyPut<VerificationController>(
+      () => VerificationController(),
       fenix: true,
     );
 

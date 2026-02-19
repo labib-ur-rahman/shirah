@@ -57,7 +57,7 @@ class CreatePostSection extends StatelessWidget {
                       ),
                       child: GestureDetector(
                         onTap: () =>
-                            Get.toNamed(AppRoutes.ADMIN_FEED_MANAGEMENT),
+                            Get.toNamed(AppRoutes.VERIFICATION),
                         // onTap: () => Get.toNamed(AppRoutes.COMMUNITY),
                         child: avatarUrl.isNotEmpty
                             ? AppCircularImage(
