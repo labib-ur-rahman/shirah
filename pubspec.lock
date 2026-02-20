@@ -1117,11 +1117,10 @@ packages:
   uddoktapay:
     dependency: "direct main"
     description:
-      name: uddoktapay
-      sha256: c556dbb7f525a72f2ec1dc515082f00717065ff7663ba6dcb1b6acb0d33f7ea4
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.6"
+      path: "packages/uddoktapay"
+      relative: true
+    source: path
+    version: "0.0.7"
   url_launcher:
     dependency: "direct main"
     description:

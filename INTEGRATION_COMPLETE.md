@@ -384,7 +384,7 @@ service cloud.firestore {
 - Login tracking implemented in-app
 
 ### 🚀 Ready for Development
-Your shirah app is now fully integrated with Firebase Cloud Functions and ready for active development. All core functionality is operational, secure, and following best practices.
+Your SHIRAH app is now fully integrated with Firebase Cloud Functions and ready for active development. All core functionality is operational, secure, and following best practices.
 
 ---
 

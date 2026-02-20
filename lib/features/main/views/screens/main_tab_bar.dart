@@ -15,12 +15,12 @@ import 'package:shirah/features/main/views/widgets/tab_icon.dart';
 import 'package:shirah/features/main/views/widgets/profile_tab_icon.dart';
 import 'package:shirah/features/profile/controllers/user_controller.dart';
 
-/// Main tab bar with shirah header design using Material TabBar
+/// Main tab bar with SHIRAH header design using Material TabBar
 ///
 /// Features:
 /// - Gradient background based on app style (reactive to theme changes)
 /// - Curved bottom corners (30px radius) using SLCurvedEdgeWidget
-/// - Brand logo "shirah" + Screen title (collapsible on scroll)
+/// - Brand logo "SHIRAH" + Screen title (collapsible on scroll)
 /// - Inbox and Menu action buttons (collapsible on scroll)
 /// - 5 icon tabs: Home, Projects, Shop, Activities, Profile
 /// - Smooth animation when collapsing/expanding header on scroll
@@ -67,7 +67,7 @@ class MainTabBar extends StatelessWidget {
                           padding: EdgeInsets.fromLTRB(24.w, 0.h, 24.w, 8.h),
                           child: Row(
                             children: [
-                              /// -- Brand Logo (shirah)
+                              /// -- Brand Logo (SHIRAH)
                               const BrandLogo(),
 
                               8.horizontalSpace,

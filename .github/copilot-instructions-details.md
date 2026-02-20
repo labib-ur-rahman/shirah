@@ -721,7 +721,7 @@ class InviteCodeHelper {
 
 ---
 
-## 💰 shirah Business Logic
+## 💰 SHIRAH Business Logic
 
 ### Wallet System
 
@@ -1083,4 +1083,4 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 ---
 
-**End of shirah AI Agent Instructions**
+**End of SHIRAH AI Agent Instructions**

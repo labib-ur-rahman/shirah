@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 /// ============================================================================
-/// SL HELPER - Unified Utility Functions for shirah App
+/// SL HELPER - Unified Utility Functions for SHIRAH App
 /// ============================================================================
 /// Legacy helper class with common utility functions
 /// For theme management, use SLHelper.isDarkMode as single source of truth

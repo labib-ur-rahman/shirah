@@ -1,4 +1,4 @@
-/// English (US) language translations for shirah
+/// English (US) language translations for SHIRAH
 /// All text constants for the application in English
 const Map<String, String> enUS = {
   // ==================== App Info ====================
@@ -363,6 +363,28 @@ const Map<String, String> enUS = {
       'Your payment is pending. We will notify you once confirmed.',
   'payment_cancelled_message': 'Payment was cancelled.',
   'payment_failed_message': 'Payment failed. Please try again.',
+
+  // ==================== Payment Result Dialog ====================
+  'payment_result_done': 'Done',
+  'payment_result_retry': 'Try Again',
+  'payment_result_close': 'Close',
+  'payment_result_transaction_id': 'Transaction ID',
+  'payment_result_amount': 'Amount',
+  'payment_result_method': 'Payment Method',
+  'payment_result_verified_title': 'Account Verified!',
+  'payment_result_verified_message':
+      'Congratulations! Your account is now verified. You can now earn reward points and access premium features.',
+  'payment_result_subscribed_title': 'Pro Activated!',
+  'payment_result_subscribed_message':
+      'Welcome to Pro! Your subscription is active with lifetime access to all premium features.',
+  'payment_result_pending_title': 'Payment Pending',
+  'payment_result_pending_message':
+      'Your payment is being processed. We will notify you once it is confirmed. This usually takes a few minutes.',
+  'payment_result_failed_message':
+      'Your payment could not be completed. Please check your balance and try again.',
+  'payment_result_cancelled_message':
+      'You cancelled the payment. No charges were made. You can try again anytime.',
+  'payment_result_congrats': 'Welcome to the SHIRAH family!',
 
   // ==================== Subscription ====================
   'subscription': 'Subscription',

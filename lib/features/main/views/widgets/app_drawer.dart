@@ -267,7 +267,7 @@ class AppDrawer extends StatelessWidget {
                       controller.closeDrawer();
                       Get.snackbar(
                         'About',
-                        'shirah v1.0.0',
+                        'SHIRAH v1.0.0',
                         snackPosition: SnackPosition.BOTTOM,
                       );
                     },

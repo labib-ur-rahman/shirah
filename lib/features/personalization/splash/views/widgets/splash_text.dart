@@ -5,7 +5,7 @@ import 'package:shirah/core/common/styles/global_text_style.dart';
 /// Splash Text - Animated app name with staggered letter entrance
 ///
 /// Features:
-/// - "shirah" text in gradient
+/// - "SHIRAH" text in gradient
 /// - Each letter animates individually
 /// - Staggered fade + slide effect
 /// - Smooth, professional animation

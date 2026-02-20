@@ -1,6 +1,6 @@
 import 'dart:math';
 
-/// Invite Code Helper - Generates and validates shirah invite codes
+/// Invite Code Helper - Generates and validates SHIRAH invite codes
 /// Format: S + 6 random characters + L (e.g., SA7K9Q2L)
 class InviteCodeHelper {
   InviteCodeHelper._();

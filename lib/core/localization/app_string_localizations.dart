@@ -366,6 +366,32 @@ class AppStrings {
   static String get paymentCancelledMessage => 'payment_cancelled_message'.tr;
   static String get paymentFailedMessage => 'payment_failed_message'.tr;
 
+  // ==================== Payment Result Dialog ====================
+  static String get paymentResultDone => 'payment_result_done'.tr;
+  static String get paymentResultRetry => 'payment_result_retry'.tr;
+  static String get paymentResultClose => 'payment_result_close'.tr;
+  static String get paymentResultTransactionId =>
+      'payment_result_transaction_id'.tr;
+  static String get paymentResultAmount => 'payment_result_amount'.tr;
+  static String get paymentResultMethod => 'payment_result_method'.tr;
+  static String get paymentResultVerifiedTitle =>
+      'payment_result_verified_title'.tr;
+  static String get paymentResultVerifiedMessage =>
+      'payment_result_verified_message'.tr;
+  static String get paymentResultSubscribedTitle =>
+      'payment_result_subscribed_title'.tr;
+  static String get paymentResultSubscribedMessage =>
+      'payment_result_subscribed_message'.tr;
+  static String get paymentResultPendingTitle =>
+      'payment_result_pending_title'.tr;
+  static String get paymentResultPendingMessage =>
+      'payment_result_pending_message'.tr;
+  static String get paymentResultFailedMessage =>
+      'payment_result_failed_message'.tr;
+  static String get paymentResultCancelledMessage =>
+      'payment_result_cancelled_message'.tr;
+  static String get paymentResultCongrats => 'payment_result_congrats'.tr;
+
   // ==================== Subscription ====================
   static String get subscription => 'subscription'.tr;
   static String get premium => 'premium'.tr;
