@@ -150,6 +150,9 @@ export const AUDIT_ACTIONS = {
   DRIVE_OFFER_SUCCESS: "drive_offer.success",
   DRIVE_OFFER_FAILED: "drive_offer.failed",
   DRIVE_OFFER_REFUND: "drive_offer.refund",
+  // Payment actions
+  PAYMENT_CREATED: "payment.created",
+  PAYMENT_ADMIN_APPROVED: "payment.admin_approved",
 } as const;
 
 // ============================================
@@ -184,8 +187,31 @@ export const COLLECTIONS = {
   // Mobile Recharge
   MOBILE_RECHARGE: "mobile_recharge",
   DRIVE_OFFER_CACHE: "drive_offer_cache",
+  // Payment
+  PAYMENT_TRANSACTIONS: "payment_transactions",
+  APP_FUNDING_TRANSACTIONS: "app_funding_transactions",
 } as const;
 
+
+// ============================================
+// PAYMENT CONSTANTS
+// ============================================
+export const PAYMENT_STATUS = {
+  PENDING: "pending",
+  COMPLETED: "completed",
+  CANCELED: "canceled",
+  FAILED: "failed",
+} as const;
+
+export const PAYMENT_TYPES = {
+  VERIFICATION: "verification",
+  SUBSCRIPTION: "subscription",
+} as const;
+
+export const UNDISTRIBUTED_REASONS = {
+  MISSING_UPLINE: "missing_upline",
+  UNVERIFIED_UPLINE: "unverified_upline",
+} as const;
 
 // ============================================
 // MOBILE RECHARGE CONSTANTS

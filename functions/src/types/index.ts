@@ -9,6 +9,9 @@ import {
   SUBSCRIPTION_STATUS,
   USER_ROLES,
   TRANSACTION_TYPES,
+  PAYMENT_STATUS,
+  PAYMENT_TYPES,
+  UNDISTRIBUTED_REASONS,
 } from "../config/constants";
 
 // ============================================
@@ -267,6 +270,53 @@ export interface AuditLog {
   ipHash: string | null;
   device: string | null;
   timestamp: FirebaseFirestore.Timestamp;
+}
+
+// ============================================
+// PAYMENT TYPES
+// ============================================
+export interface PaymentTransaction {
+  id: string;
+  uid: string;
+  type: typeof PAYMENT_TYPES[keyof typeof PAYMENT_TYPES];
+  amount: number;
+  status: typeof PAYMENT_STATUS[keyof typeof PAYMENT_STATUS];
+  paymentMethod: string;
+  invoiceId: string;
+  transactionId: string;
+  senderNumber: string;
+  fee: string;
+  chargedAmount: string;
+  uddoktapayResponse: Record<string, unknown>;
+  processedBy: string | null;
+  processedAt: FirebaseFirestore.Timestamp | null;
+  createdAt: FirebaseFirestore.Timestamp;
+  updatedAt: FirebaseFirestore.Timestamp;
+}
+
+export interface AppFundingTransaction {
+  id: string;
+  type: "verification_undistributed" | "subscription_undistributed";
+  sourceUid: string;
+  sourceEvent: typeof PAYMENT_TYPES[keyof typeof PAYMENT_TYPES];
+  skippedLevel: number;
+  skippedUplineUid: string | null;
+  reason: typeof UNDISTRIBUTED_REASONS[keyof typeof UNDISTRIBUTED_REASONS];
+  points: number;
+  amountBDT: number;
+  createdAt: FirebaseFirestore.Timestamp;
+}
+
+export interface UndistributedEntry {
+  level: number;
+  uplineUid: string | null;
+  reason: typeof UNDISTRIBUTED_REASONS[keyof typeof UNDISTRIBUTED_REASONS];
+  points: number;
+}
+
+export interface DistributionResult {
+  rewards: Map<string, number>;
+  undistributed: UndistributedEntry[];
 }
 
 // ============================================

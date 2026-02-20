@@ -6,9 +6,10 @@
 import * as admin from "firebase-admin";
 import {
   COLLECTIONS,
+  UNDISTRIBUTED_REASONS,
 } from "../../config/constants";
 import { getAppConfig } from "../../config/dynamic-config";
-import { UserUplines, UserRelation, UserNetworkStats, LevelStats } from "../../types";
+import { UserUplines, UserRelation, UserNetworkStats, LevelStats, DistributionResult, UndistributedEntry, UserDocument } from "../../types";
 import {
   serverTimestamp,
   getUplineKey,
@@ -332,40 +333,114 @@ export function getUplineAtLevel(uplines: UserUplines, level: number, maxDepth: 
 
 /**
  * Distribute reward points to uplines based on subscription
+ * Now checks if each upline is verified — unverified/missing uplines are skipped
+ * and their share goes to app funding.
  */
 export async function distributeSubscriptionRewards(
   descendantUid: string,
   uplines: UserUplines
-): Promise<Map<string, number>> {
+): Promise<DistributionResult> {
   const config = await getAppConfig();
   const rewards = new Map<string, number>();
+  const undistributed: UndistributedEntry[] = [];
 
   for (const dist of config.subscription.levelDistribution) {
     const uplineUid = getUplineAtLevel(uplines, dist.level, config.network.maxDepth);
-    if (!uplineUid) break;
+
+    if (!uplineUid) {
+      // Missing upline — log to app funding, continue to next level
+      undistributed.push({
+        level: dist.level,
+        uplineUid: null,
+        reason: UNDISTRIBUTED_REASONS.MISSING_UPLINE,
+        points: dist.points,
+      });
+      continue;
+    }
+
+    // Check if upline is verified
+    const uplineDoc = await db.collection(COLLECTIONS.USERS).doc(uplineUid).get();
+    if (!uplineDoc.exists) {
+      undistributed.push({
+        level: dist.level,
+        uplineUid,
+        reason: UNDISTRIBUTED_REASONS.MISSING_UPLINE,
+        points: dist.points,
+      });
+      continue;
+    }
+
+    const uplineData = uplineDoc.data() as UserDocument;
+    if (!uplineData.status.verified) {
+      undistributed.push({
+        level: dist.level,
+        uplineUid,
+        reason: UNDISTRIBUTED_REASONS.UNVERIFIED_UPLINE,
+        points: dist.points,
+      });
+      continue;
+    }
+
     rewards.set(uplineUid, dist.points);
   }
 
-  return rewards;
+  return { rewards, undistributed };
 }
 
 /**
  * Distribute reward points to uplines based on verification
+ * Now checks if each upline is verified — unverified/missing uplines are skipped
+ * and their share goes to app funding.
  */
 export async function distributeVerificationRewards(
   descendantUid: string,
   uplines: UserUplines
-): Promise<Map<string, number>> {
+): Promise<DistributionResult> {
   const config = await getAppConfig();
   const rewards = new Map<string, number>();
+  const undistributed: UndistributedEntry[] = [];
 
   for (const dist of config.verification.levelDistribution) {
     const uplineUid = getUplineAtLevel(uplines, dist.level, config.network.maxDepth);
-    if (!uplineUid) break;
+
+    if (!uplineUid) {
+      // Missing upline — log to app funding, continue to next level
+      undistributed.push({
+        level: dist.level,
+        uplineUid: null,
+        reason: UNDISTRIBUTED_REASONS.MISSING_UPLINE,
+        points: dist.points,
+      });
+      continue;
+    }
+
+    // Check if upline is verified
+    const uplineDoc = await db.collection(COLLECTIONS.USERS).doc(uplineUid).get();
+    if (!uplineDoc.exists) {
+      undistributed.push({
+        level: dist.level,
+        uplineUid,
+        reason: UNDISTRIBUTED_REASONS.MISSING_UPLINE,
+        points: dist.points,
+      });
+      continue;
+    }
+
+    const uplineData = uplineDoc.data() as UserDocument;
+    if (!uplineData.status.verified) {
+      undistributed.push({
+        level: dist.level,
+        uplineUid,
+        reason: UNDISTRIBUTED_REASONS.UNVERIFIED_UPLINE,
+        points: dist.points,
+      });
+      continue;
+    }
+
     rewards.set(uplineUid, dist.points);
   }
 
-  return rewards;
+  return { rewards, undistributed };
 }
 
 /**

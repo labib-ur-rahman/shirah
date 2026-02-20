@@ -103,16 +103,20 @@ class CloudFunctionsService extends GetxController {
 
   /// Verify user profile (after payment)
   Future<Map<String, dynamic>> verifyUserProfile({
-    required String paymentReference,
+    required String paymentTransactionId,
   }) async {
-    return call('verifyUserProfile', {'paymentReference': paymentReference});
+    return call('verifyUserProfile', {
+      'paymentTransactionId': paymentTransactionId,
+    });
   }
 
   /// Subscribe user (after payment)
   Future<Map<String, dynamic>> subscribeUser({
-    required String paymentReference,
+    required String paymentTransactionId,
   }) async {
-    return call('subscribeUser', {'paymentReference': paymentReference});
+    return call('subscribeUser', {
+      'paymentTransactionId': paymentTransactionId,
+    });
   }
 
   /// Check authentication status
@@ -486,6 +490,57 @@ class CloudFunctionsService extends GetxController {
     String? type,
   }) async {
     return call('getAdminFeedItems', {
+      if (limit != null) 'limit': limit,
+      if (status != null) 'status': status,
+      if (type != null) 'type': type,
+    });
+  }
+
+  // ==================== Payment Functions ====================
+
+  /// Create a payment transaction after UddoktaPay response
+  Future<Map<String, dynamic>> createPaymentTransaction({
+    required String type,
+    required Map<String, dynamic> uddoktapayResponse,
+  }) async {
+    return call('createPaymentTransaction', {
+      'type': type,
+      'uddoktapayResponse': uddoktapayResponse,
+    });
+  }
+
+  /// Get payment history for current user
+  Future<Map<String, dynamic>> getPaymentHistory({
+    int? limit,
+    String? startAfter,
+  }) async {
+    return call('getPaymentHistory', {
+      if (limit != null) 'limit': limit,
+      if (startAfter != null) 'startAfter': startAfter,
+    });
+  }
+
+  /// Get payment configuration (UddoktaPay credentials + prices)
+  Future<Map<String, dynamic>> getPaymentConfig() async {
+    return call('getPaymentConfig', null);
+  }
+
+  /// Admin: Approve a pending payment
+  Future<Map<String, dynamic>> adminApprovePayment({
+    required String paymentTransactionId,
+  }) async {
+    return call('adminApprovePayment', {
+      'paymentTransactionId': paymentTransactionId,
+    });
+  }
+
+  /// Admin: Get payment transactions for review
+  Future<Map<String, dynamic>> getAdminPaymentTransactions({
+    int? limit,
+    String? status,
+    String? type,
+  }) async {
+    return call('getAdminPaymentTransactions', {
       if (limit != null) 'limit': limit,
       if (status != null) 'status': status,
       if (type != null) 'type': type,

@@ -14,9 +14,11 @@ import {
   AUDIT_ACTIONS,
   USER_ROLES,
   REGION,
+  PAYMENT_STATUS,
+  PAYMENT_TYPES,
 } from "../../config/constants";
 import { getAppConfig } from "../../config/dynamic-config";
-import { ApiResponse } from "../../types";
+import { ApiResponse, UndistributedEntry } from "../../types";
 import { serverTimestamp } from "../../utils/helpers";
 import {
   validateAuthenticated,
@@ -46,19 +48,20 @@ export const onUserLogin = functionsV1.region(REGION).auth.user().beforeSignIn(a
 
 /**
  * Cloud Function: Verify user profile (after payment)
+ * Updated: Validates payment_transactions doc, handles undistributed commission to app_funding_transactions
  */
 export const verifyUserProfile = functions.https.onCall(
   { region: REGION },
   async (request: functions.https.CallableRequest<{
-    paymentReference: string;
+    paymentTransactionId: string;
   }>): Promise<ApiResponse> => {
     const uid = validateAuthenticated(request.auth);
-    const { paymentReference } = request.data;
+    const { paymentTransactionId } = request.data;
 
-    if (!paymentReference) {
+    if (!paymentTransactionId) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        "Payment reference is required"
+        "Payment transaction ID is required"
       );
     }
 
@@ -76,9 +79,30 @@ export const verifyUserProfile = functions.https.onCall(
       );
     }
 
+    // Validate payment transaction
+    const paymentRef = db.collection(COLLECTIONS.PAYMENT_TRANSACTIONS).doc(paymentTransactionId);
+    const paymentDoc = await paymentRef.get();
+
+    if (!paymentDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Payment transaction not found");
+    }
+
+    const paymentData = paymentDoc.data()!;
+    if (paymentData.uid !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "Payment does not belong to this user");
+    }
+    if (paymentData.status !== PAYMENT_STATUS.COMPLETED) {
+      throw new functions.https.HttpsError("failed-precondition", "Payment is not completed");
+    }
+    if (paymentData.type !== PAYMENT_TYPES.VERIFICATION) {
+      throw new functions.https.HttpsError("invalid-argument", "Payment is not for verification");
+    }
+
     // Get uplines for reward distribution
     const uplines = await getUserUplines(uid);
     const config = await getAppConfig();
+
+    let undistributedEntries: UndistributedEntry[] = [];
 
     await db.runTransaction(async (tx) => {
       const userRef = db.collection(COLLECTIONS.USERS).doc(uid);
@@ -95,8 +119,10 @@ export const verifyUserProfile = functions.https.onCall(
       if (uplines) {
         incrementNetworkStatsInTransaction(tx, uplines, "verified", config.network.maxDepth);
 
-        // Distribute verification rewards to uplines
-        const rewards = await distributeVerificationRewards(uid, uplines);
+        // Distribute verification rewards to uplines (with verified check)
+        const { rewards, undistributed } = await distributeVerificationRewards(uid, uplines);
+        undistributedEntries = undistributed;
+
         for (const [uplineUid, points] of rewards) {
           creditRewardPointsInTransaction(
             tx,
@@ -110,6 +136,9 @@ export const verifyUserProfile = functions.https.onCall(
       }
     });
 
+    // Write undistributed entries to app_funding_transactions (outside transaction to avoid conflicts)
+    await writeUndistributedEntries(undistributedEntries, uid, PAYMENT_TYPES.VERIFICATION, config.rewardPoints.conversionRate);
+
     // Update relations
     await updateRelationsOnStatusChange(uid, "descendantVerified", true);
 
@@ -118,7 +147,7 @@ export const verifyUserProfile = functions.https.onCall(
       actorRole: user.role,
       action: AUDIT_ACTIONS.USER_VERIFY,
       targetUid: uid,
-      metadata: { paymentReference },
+      metadata: { paymentTransactionId },
     });
 
     return {
@@ -130,19 +159,20 @@ export const verifyUserProfile = functions.https.onCall(
 
 /**
  * Cloud Function: Subscribe user (after payment)
+ * Updated: Validates payment_transactions doc, handles undistributed commission to app_funding_transactions
  */
 export const subscribeUser = functions.https.onCall(
   { region: REGION },
   async (request: functions.https.CallableRequest<{
-    paymentReference: string;
+    paymentTransactionId: string;
   }>): Promise<ApiResponse> => {
     const uid = validateAuthenticated(request.auth);
-    const { paymentReference } = request.data;
+    const { paymentTransactionId } = request.data;
 
-    if (!paymentReference) {
+    if (!paymentTransactionId) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        "Payment reference is required"
+        "Payment transaction ID is required"
       );
     }
 
@@ -160,9 +190,30 @@ export const subscribeUser = functions.https.onCall(
       );
     }
 
+    // Validate payment transaction
+    const paymentRef = db.collection(COLLECTIONS.PAYMENT_TRANSACTIONS).doc(paymentTransactionId);
+    const paymentDoc = await paymentRef.get();
+
+    if (!paymentDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Payment transaction not found");
+    }
+
+    const paymentData = paymentDoc.data()!;
+    if (paymentData.uid !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "Payment does not belong to this user");
+    }
+    if (paymentData.status !== PAYMENT_STATUS.COMPLETED) {
+      throw new functions.https.HttpsError("failed-precondition", "Payment is not completed");
+    }
+    if (paymentData.type !== PAYMENT_TYPES.SUBSCRIPTION) {
+      throw new functions.https.HttpsError("invalid-argument", "Payment is not for subscription");
+    }
+
     // Get uplines for reward distribution
     const uplines = await getUserUplines(uid);
     const config = await getAppConfig();
+
+    let undistributedEntries: UndistributedEntry[] = [];
 
     await db.runTransaction(async (tx) => {
       const userRef = db.collection(COLLECTIONS.USERS).doc(uid);
@@ -185,8 +236,10 @@ export const subscribeUser = functions.https.onCall(
           incrementNetworkStatsInTransaction(tx, uplines, "verified", config.network.maxDepth);
         }
 
-        // Distribute subscription rewards to uplines
-        const rewards = await distributeSubscriptionRewards(uid, uplines);
+        // Distribute subscription rewards to uplines (with verified check)
+        const { rewards, undistributed } = await distributeSubscriptionRewards(uid, uplines);
+        undistributedEntries = undistributed;
+
         for (const [uplineUid, points] of rewards) {
           creditRewardPointsInTransaction(
             tx,
@@ -200,6 +253,9 @@ export const subscribeUser = functions.https.onCall(
       }
     });
 
+    // Write undistributed entries to app_funding_transactions (outside transaction)
+    await writeUndistributedEntries(undistributedEntries, uid, PAYMENT_TYPES.SUBSCRIPTION, config.rewardPoints.conversionRate);
+
     // Update relations
     await updateRelationsOnStatusChange(uid, "descendantSubscribed", true);
     if (!user.status.verified) {
@@ -211,7 +267,7 @@ export const subscribeUser = functions.https.onCall(
       actorRole: user.role,
       action: AUDIT_ACTIONS.USER_SUBSCRIBE,
       targetUid: uid,
-      metadata: { paymentReference },
+      metadata: { paymentTransactionId },
     });
 
     return {
@@ -303,4 +359,152 @@ export async function isUserAccountActive(uid: string): Promise<boolean> {
   const user = await getUserByUid(uid);
   if (!user) return false;
   return user.status.accountState === ACCOUNT_STATES.ACTIVE;
+}
+
+/**
+ * Write undistributed commission entries to app_funding_transactions collection.
+ * Called after the main transaction to avoid conflicts.
+ */
+async function writeUndistributedEntries(
+  entries: UndistributedEntry[],
+  sourceUid: string,
+  sourceEvent: string,
+  conversionRate: number
+): Promise<void> {
+  if (entries.length === 0) return;
+
+  const batch = db.batch();
+  const fundingType = sourceEvent === PAYMENT_TYPES.VERIFICATION
+    ? "verification_undistributed"
+    : "subscription_undistributed";
+
+  for (const entry of entries) {
+    const ref = db.collection(COLLECTIONS.APP_FUNDING_TRANSACTIONS).doc();
+    batch.set(ref, {
+      id: ref.id,
+      type: fundingType,
+      sourceUid,
+      sourceEvent,
+      skippedLevel: entry.level,
+      skippedUplineUid: entry.uplineUid,
+      reason: entry.reason,
+      points: entry.points,
+      amountBDT: entry.points / conversionRate,
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
+}
+
+/**
+ * Internal: Process verification for a user (used by both direct call and admin approval)
+ */
+export async function processVerification(
+  uid: string,
+  paymentTransactionId: string
+): Promise<void> {
+  const user = await getUserByUid(uid);
+  if (!user) throw new functions.https.HttpsError("not-found", "User not found");
+  if (user.status.verified) return; // Already verified, skip silently
+
+  const uplines = await getUserUplines(uid);
+  const config = await getAppConfig();
+
+  let undistributedEntries: UndistributedEntry[] = [];
+
+  await db.runTransaction(async (tx) => {
+    const userRef = db.collection(COLLECTIONS.USERS).doc(uid);
+    tx.update(userRef, {
+      "status.verified": true,
+      "permissions.canPost": true,
+      "permissions.canWithdraw": true,
+      "meta.updatedAt": serverTimestamp(),
+    });
+
+    if (uplines) {
+      incrementNetworkStatsInTransaction(tx, uplines, "verified", config.network.maxDepth);
+      const { rewards, undistributed } = await distributeVerificationRewards(uid, uplines);
+      undistributedEntries = undistributed;
+
+      for (const [uplineUid, points] of rewards) {
+        creditRewardPointsInTransaction(
+          tx, uplineUid, points,
+          TRANSACTION_SOURCES.VERIFICATION_COMMISSION,
+          `Verification reward from network member`, uid
+        );
+      }
+    }
+  });
+
+  await writeUndistributedEntries(undistributedEntries, uid, PAYMENT_TYPES.VERIFICATION, config.rewardPoints.conversionRate);
+  await updateRelationsOnStatusChange(uid, "descendantVerified", true);
+
+  await createAuditLog({
+    actorUid: uid,
+    actorRole: user.role,
+    action: AUDIT_ACTIONS.USER_VERIFY,
+    targetUid: uid,
+    metadata: { paymentTransactionId },
+  });
+}
+
+/**
+ * Internal: Process subscription for a user (used by both direct call and admin approval)
+ */
+export async function processSubscription(
+  uid: string,
+  paymentTransactionId: string
+): Promise<void> {
+  const user = await getUserByUid(uid);
+  if (!user) throw new functions.https.HttpsError("not-found", "User not found");
+  if (user.status.subscription === SUBSCRIPTION_STATUS.ACTIVE) return;
+
+  const uplines = await getUserUplines(uid);
+  const config = await getAppConfig();
+
+  let undistributedEntries: UndistributedEntry[] = [];
+
+  await db.runTransaction(async (tx) => {
+    const userRef = db.collection(COLLECTIONS.USERS).doc(uid);
+    tx.update(userRef, {
+      "status.subscription": SUBSCRIPTION_STATUS.ACTIVE,
+      "status.verified": true,
+      "permissions.canPost": true,
+      "permissions.canWithdraw": true,
+      "meta.updatedAt": serverTimestamp(),
+    });
+
+    if (uplines) {
+      incrementNetworkStatsInTransaction(tx, uplines, "subscribed", config.network.maxDepth);
+      if (!user.status.verified) {
+        incrementNetworkStatsInTransaction(tx, uplines, "verified", config.network.maxDepth);
+      }
+
+      const { rewards, undistributed } = await distributeSubscriptionRewards(uid, uplines);
+      undistributedEntries = undistributed;
+
+      for (const [uplineUid, points] of rewards) {
+        creditRewardPointsInTransaction(
+          tx, uplineUid, points,
+          TRANSACTION_SOURCES.SUBSCRIPTION_COMMISSION,
+          `Subscription reward from network member`, uid
+        );
+      }
+    }
+  });
+
+  await writeUndistributedEntries(undistributedEntries, uid, PAYMENT_TYPES.SUBSCRIPTION, config.rewardPoints.conversionRate);
+  await updateRelationsOnStatusChange(uid, "descendantSubscribed", true);
+  if (!user.status.verified) {
+    await updateRelationsOnStatusChange(uid, "descendantVerified", true);
+  }
+
+  await createAuditLog({
+    actorUid: uid,
+    actorRole: user.role,
+    action: AUDIT_ACTIONS.USER_SUBSCRIBE,
+    targetUid: uid,
+    metadata: { paymentTransactionId },
+  });
 }

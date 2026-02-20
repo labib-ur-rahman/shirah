@@ -62,6 +62,12 @@ class FirebasePaths {
   /// Recharge history collection
   static const String rechargeHistory = 'recharge_history';
 
+  /// Payment transactions collection
+  static const String paymentTransactions = 'payment_transactions';
+
+  /// App funding transactions collection
+  static const String appFundingTransactions = 'app_funding_transactions';
+
   /// Vouchers collection
   static const String vouchers = 'vouchers';
 

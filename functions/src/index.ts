@@ -183,6 +183,17 @@ export {
 } from "./features/home-feed/home-feed-operations";
 
 // ============================================
+// PAYMENT FUNCTIONS
+// ============================================
+export {
+  createPaymentTransaction,
+  adminApprovePayment,
+  getPaymentHistory,
+  getAdminPaymentTransactions,
+  getPaymentConfig,
+} from "./features/payment/payment-operations";
+
+// ============================================
 // FUNCTION REFERENCE (For Flutter Developers)
 // ============================================
 /**
@@ -193,8 +204,8 @@ export {
  * - updateUserProfile(firstName?, lastName?, phone?, photoURL?, coverURL?)
  *
  * AUTH FUNCTIONS (Callable):
- * - verifyUserProfile(paymentReference)
- * - subscribeUser(paymentReference)
+ * - verifyUserProfile(paymentTransactionId)
+ * - subscribeUser(paymentTransactionId)
  * - checkAuthStatus()
  *
  * AUTH TRIGGERS:
@@ -260,4 +271,11 @@ export {
  * - getAdminRechargeHistory(limit?, startAfter?, status?, type?, uid?) [Admin]
  * - getRechargeStats(period?) [Admin]
  * - adminRetryRecharge(refid) [Admin]
+ *
+ * PAYMENT FUNCTIONS (Callable):
+ * - createPaymentTransaction(type, uddoktapayResponse)
+ * - adminApprovePayment(paymentTransactionId) [Admin]
+ * - getPaymentHistory(limit?, startAfter?)
+ * - getAdminPaymentTransactions(limit?, status?, type?) [Admin]
+ * - getPaymentConfig()
  */
