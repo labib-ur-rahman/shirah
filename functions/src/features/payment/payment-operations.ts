@@ -387,14 +387,19 @@ export const getPaymentConfig = functions.https.onCall(
 
     const config = await getAppConfig();
 
+    // Select the active environment keys based on isSandbox flag
+    const activeEnv = config.uddoktaPay.isSandbox
+      ? config.uddoktaPay.sandbox
+      : config.uddoktaPay.production;
+
     return {
       success: true,
       message: "Payment configuration retrieved",
       data: {
         isSandbox: config.uddoktaPay.isSandbox,
-        apiKey: config.uddoktaPay.apiKey,
-        panelURL: config.uddoktaPay.panelURL,
-        redirectURL: config.uddoktaPay.redirectURL,
+        apiKey: activeEnv.apiKey,
+        panelURL: activeEnv.panelURL,
+        redirectURL: activeEnv.redirectURL,
         verificationPriceBDT: config.verification.priceBDT,
         subscriptionPriceBDT: config.subscription.priceBDT,
       },

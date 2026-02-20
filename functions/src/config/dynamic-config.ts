@@ -87,11 +87,22 @@ export interface WalletConfig {
   withdrawalFeePer1000: number;
 }
 
-export interface UddoktaPayConfig {
+export interface UddoktaPayEnvironment {
   apiKey: string;
   panelURL: string;
   redirectURL: string;
+}
+
+export interface UddoktaPayConfig {
   isSandbox: boolean;
+  sandbox: UddoktaPayEnvironment;
+  production: UddoktaPayEnvironment;
+  /** @deprecated Use sandbox/production objects instead. Kept for backward compatibility. */
+  apiKey?: string;
+  /** @deprecated Use sandbox/production objects instead. */
+  panelURL?: string;
+  /** @deprecated Use sandbox/production objects instead. */
+  redirectURL?: string;
 }
 
 export interface AppConfig {
@@ -206,10 +217,17 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
 
   uddoktaPay: {
-    apiKey: "",
-    panelURL: "",
-    redirectURL: "",
     isSandbox: true,
+    sandbox: {
+      apiKey: "",
+      panelURL: "",
+      redirectURL: "",
+    },
+    production: {
+      apiKey: "",
+      panelURL: "",
+      redirectURL: "",
+    },
   },
 };
 
@@ -331,10 +349,50 @@ function mergeWithDefaults(data: Record<string, unknown>): AppConfig {
       ...DEFAULT_CONFIG.wallet,
       ...asSection<WalletConfig>("wallet"),
     },
-    uddoktaPay: {
-      ...DEFAULT_CONFIG.uddoktaPay,
-      ...asSection<UddoktaPayConfig>("uddoktaPay"),
-    },
+    uddoktaPay: mergeUddoktaPayConfig(asSection<UddoktaPayConfig>("uddoktaPay")),
+  };
+}
+
+/**
+ * Merge UddoktaPay config, supporting both legacy flat keys and new
+ * sandbox/production structure for backward compatibility.
+ */
+function mergeUddoktaPayConfig(data: Partial<UddoktaPayConfig>): UddoktaPayConfig {
+  const defaults = DEFAULT_CONFIG.uddoktaPay;
+
+  // Support legacy flat-key format (apiKey, panelURL, redirectURL at root)
+  const legacyApiKey = data.apiKey;
+  const legacyPanelURL = data.panelURL;
+  const legacyRedirectURL = data.redirectURL;
+
+  const sandbox: UddoktaPayEnvironment = {
+    ...defaults.sandbox,
+    ...(data.sandbox || {}),
+  };
+
+  const production: UddoktaPayEnvironment = {
+    ...defaults.production,
+    ...(data.production || {}),
+  };
+
+  // If legacy flat keys exist and sandbox/production are empty, migrate them
+  if (legacyApiKey && !sandbox.apiKey && !production.apiKey) {
+    const isSandbox = data.isSandbox ?? defaults.isSandbox;
+    if (isSandbox) {
+      sandbox.apiKey = legacyApiKey;
+      sandbox.panelURL = legacyPanelURL || sandbox.panelURL;
+      sandbox.redirectURL = legacyRedirectURL || sandbox.redirectURL;
+    } else {
+      production.apiKey = legacyApiKey;
+      production.panelURL = legacyPanelURL || production.panelURL;
+      production.redirectURL = legacyRedirectURL || production.redirectURL;
+    }
+  }
+
+  return {
+    isSandbox: data.isSandbox ?? defaults.isSandbox,
+    sandbox,
+    production,
   };
 }
 

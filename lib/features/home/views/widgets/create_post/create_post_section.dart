@@ -16,6 +16,7 @@ import 'package:shirah/features/community/views/screens/create_post_screen.dart'
 import 'package:shirah/features/home/views/widgets/create_post/create_post_shortcut_action_button.dart';
 import 'package:shirah/features/micro_jobs/views/screens/create_micro_job_screen.dart';
 import 'package:shirah/features/profile/controllers/user_controller.dart';
+import 'package:shirah/routes/app_routes.dart';
 
 /// Create Post Section - Post creation shortcut with action buttons
 /// Displays user profile picture, text input placeholder, and quick action buttons
