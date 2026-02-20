@@ -2,7 +2,7 @@
 
 ## 📋 Summary
 
-This document outlines the comprehensive refactoring of the shirah app's core utilities to create a production-ready, enterprise-level codebase with improved reusability, reactivity, and maintainability.
+This document outlines the comprehensive refactoring of the SHIRAH app's core utilities to create a production-ready, enterprise-level codebase with improved reusability, reactivity, and maintainability.
 
 ---
 
@@ -66,7 +66,7 @@ Obx(() => Container(
 ##### **Section 2: Locale/Language Management (Reactive)**
 ```dart
 Obx(() => Text(
-  AppHelper.isBangla ? 'শিরাহ' : 'shirah',
+  AppHelper.isBangla ? 'শিরাহ' : 'SHIRAH',
 ))
 ```
 
@@ -450,7 +450,7 @@ class MyCard extends StatelessWidget {
 - ✅ Zero Flutter analyzer issues
 
 ### **Production Ready:**
-The shirah app now has a solid foundation for scaling to enterprise-level requirements with consistent patterns, comprehensive utilities, and production-ready code quality.
+The SHIRAH app now has a solid foundation for scaling to enterprise-level requirements with consistent patterns, comprehensive utilities, and production-ready code quality.
 
 ---
 

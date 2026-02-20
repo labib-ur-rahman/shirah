@@ -443,7 +443,7 @@ class _CommunityPostCardState extends State<CommunityPostCard>
   void _sharePost() {
     final text = _content.isNotEmpty
         ? _content
-        : 'Check out this post on shirah!';
+        : 'Check out this post on SHIRAH!';
     Share.share(text);
   }
 

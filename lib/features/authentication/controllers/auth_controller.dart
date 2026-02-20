@@ -14,7 +14,7 @@ import 'package:shirah/routes/app_routes.dart';
 
 /// Authentication Controller
 /// Manages login, signup, Google auth, forgot password, invite code flows.
-/// Follows MVC + Repository pattern per shirah architecture.
+/// Follows MVC + Repository pattern per SHIRAH architecture.
 class AuthController extends GetxController {
   static AuthController get instance => Get.find();
 

@@ -145,9 +145,9 @@ class WalletTab extends StatelessWidget {
     // Demo messages
     final messages = [
       _MessageItem(
-        name: 'shirah Support',
+        name: 'SHIRAH Support',
         message:
-            'Welcome to shirah! Your account has been verified successfully.',
+            'Welcome to SHIRAH! Your account has been verified successfully.',
         time: '2m ago',
         isUnread: true,
         avatarUrl: 'https://avatars.githubusercontent.com/u/177158869',

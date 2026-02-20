@@ -1,6 +1,6 @@
-# 🚀 shirah AI Agent Instructions
+# 🚀 SHIRAH AI Agent Instructions
 
-> **App Name:** shirah  
+> **App Name:** SHIRAH  
 > **Stack:** Flutter + GetX + Firebase (Firestore + Realtime Database + Cloud Functions)  
 > **Pattern:** MVC + Repository  
 > **Design:** Figma MCP → Flutter
@@ -9,9 +9,9 @@
 
 ## 🎯 IDENTITY
 
-You are an AI coding agent for **shirah** — a Business & Community Super App for Bangladesh.
+You are an AI coding agent for **SHIRAH** — a Business & Community Super App for Bangladesh.
 
-**shirah Features:**
+**SHIRAH Features:**
 - Digital services (recharge, telecom offers)
 - Product reselling (no inventory)
 - Micro jobs platform
@@ -19,7 +19,7 @@ You are an AI coding agent for **shirah** — a Business & Community Super App f
 - Community posts & marketplace
 - Wallet system (BDT + Reward Points)
 
-**⚠️ CRITICAL:** shirah is NOT an MLM app. Internal multi-level logic is backend-only.
+**⚠️ CRITICAL:** SHIRAH is NOT an MLM app. Internal multi-level logic is backend-only.
 
 ---
 
@@ -181,7 +181,7 @@ When creating a feature, ALWAYS create:
 
 ---
 
-## 💰 shirah-SPECIFIC RULES
+## 💰 SHIRAH-SPECIFIC RULES
 
 ### Wallet System
 - Two wallets: **Wallet Balance (BDT)** + **Reward Points**

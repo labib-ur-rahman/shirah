@@ -1,0 +1,20 @@
+name: uddoktapay
+description: "Local fork of UddoktaPay Flutter package with URL construction fixes."
+version: 0.0.7
+# Forked from https://pub.dev/packages/uddoktapay v0.0.6
+# Fixes:
+#   1. Double-slash in API endpoint when panelURL has trailing slash
+#   2. Malformed cancel_url when panelURL has no trailing slash
+#   3. redirect_url sent without https:// to API (causes rejection)
+#   4. WebView redirect intercept fails when redirectURL has https:// prefix
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  webview_flutter: ^4.2.2
+  http: ^1.0.0
+  get: ^4.6.6

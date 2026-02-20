@@ -66,7 +66,7 @@ class SLFirebaseFunctionsException implements Exception {
       case 'network-request-failed':
         return 'Network request failed. Please check your internet connection.';
 
-      // Custom shirah specific errors
+      // Custom SHIRAH specific errors
       case 'invalid-invite-code':
         return 'The invite code is invalid or has expired.';
       case 'invite-code-already-used':

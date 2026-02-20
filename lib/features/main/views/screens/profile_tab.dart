@@ -26,7 +26,7 @@ class ProfileTab extends StatelessWidget {
 
           final String fullName = controller.fullName.isNotEmpty
               ? controller.fullName
-              : 'shirah User';
+              : 'SHIRAH User';
           final String phone = controller.phone.isNotEmpty
               ? controller.phone
               : '+880 1XXX-XXXXXX';

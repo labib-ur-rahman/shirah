@@ -1,0 +1,142 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
+import 'package:uddoktapay/controllers/payment_controller.dart';
+import 'package:uddoktapay/models/customer_model.dart';
+import 'package:uddoktapay/models/request_response.dart';
+import 'package:uddoktapay/utils/config.dart';
+import 'package:uddoktapay/utils/endpoints.dart';
+import 'package:uddoktapay/widget/custom_snackbar.dart';
+import '../../models/credentials.dart';
+
+class ApiServices {
+  /// Normalize a base URL: strip trailing slashes so path concatenation
+  /// never produces double-slashes (e.g. `https://x.io//api/...`).
+  static String _normalizeBaseUrl(String url) =>
+      url.replaceAll(RegExp(r'/+$'), '');
+
+  /// Ensure a redirect URL has `https://` scheme for the API body.
+  /// The UddoktaPay API requires a full URL, but for WebView interception
+  /// we need domain-only. This helper is used ONLY for the API request body.
+  static String _ensureScheme(String url) =>
+      url.startsWith('http') ? url : 'https://$url';
+
+  static Future<Map<String, dynamic>> createPaymentRequest({
+    UddoktapayCredentials? uddoktapayCredentials,
+    required CustomerDetails customer,
+    required String amount,
+    Map? metadata,
+    String? webhookUrl,
+    required BuildContext context,
+  }) async {
+    // Determine base URL (no trailing slash)
+    final String baseUrl;
+    final String apiKey;
+    final String redirectUrl;
+    final String cancelUrl;
+
+    if (uddoktapayCredentials == null) {
+      // Sandbox mode
+      baseUrl = _normalizeBaseUrl(AppConfig.sandboxURL);
+      apiKey = AppConfig.sandboxAPIKey;
+      redirectUrl = AppConfig.redirectURL;
+      cancelUrl = AppConfig.cancelURL;
+    } else {
+      // Production mode
+      baseUrl = _normalizeBaseUrl(uddoktapayCredentials.panelURL);
+      apiKey = uddoktapayCredentials.apiKey;
+      // API body needs full URL with scheme
+      redirectUrl = _ensureScheme(uddoktapayCredentials.redirectURL);
+      // Build cancel_url properly with slash separator
+      cancelUrl = '$baseUrl/checkout/cancel';
+    }
+
+    final Map<String, dynamic> requestData = {
+      'full_name': customer.fullName,
+      'email': customer.email,
+      'amount': amount,
+      'metadata': metadata ?? {"order_id": "10", "product_id": "5"},
+      'redirect_url': redirectUrl,
+      'cancel_url': cancelUrl,
+      'return_type': 'GET',
+      if (webhookUrl != null) 'webhook_url': webhookUrl,
+    };
+
+    debugPrint('Request Data $requestData');
+
+    final controller = Get.put(PaymentController());
+    controller.panelURL.value = baseUrl;
+    controller.apiKey.value = apiKey;
+
+    // API endpoint: baseUrl (no trailing slash) + /api/checkout-v2
+    final apiEndpoint = '$baseUrl${Endpoints.createPayment}';
+    debugPrint('API Endpoint: $apiEndpoint');
+
+    try {
+      final http.Response response = await http.post(
+        Uri.parse(apiEndpoint),
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'RT-UDDOKTAPAY-API-KEY': apiKey,
+        },
+        body: jsonEncode(requestData),
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic responseData = jsonDecode(response.body);
+        return {
+          'status': responseData['status'],
+          'message': responseData['message'],
+          'payment_url': responseData['payment_url'],
+        };
+      } else {
+        final error = jsonDecode(response.body)['message'];
+        snackBar(error, context);
+        debugPrint('API Error (${response.statusCode}): $error');
+        throw Exception(error);
+      }
+    } catch (error) {
+      debugPrint('Payment request error: $error');
+      snackBar('Something is wrong', context);
+      throw Exception('Something is wrong');
+    }
+  }
+
+  static Future<RequestResponse> verifyPayment(
+    String invoiceId,
+    BuildContext context,
+  ) async {
+    final Map<String, dynamic> requestData = {
+      'invoice_id': invoiceId,
+    };
+
+    final controller = Get.put(PaymentController());
+
+    // Use normalized panelURL (already stored without trailing slash)
+    final verifyEndpoint =
+        '${controller.panelURL.value}${Endpoints.verifyPayment}';
+    debugPrint('Verify Endpoint: $verifyEndpoint');
+
+    final http.Response response = await http.post(
+      Uri.parse(verifyEndpoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'RT-UDDOKTAPAY-API-KEY': controller.apiKey.value,
+      },
+      body: jsonEncode(requestData),
+    );
+
+    if (response.statusCode == 200) {
+      return requestResponseFromJson(response.body);
+    } else {
+      final decoded = jsonDecode(response.body);
+      snackBar(decoded['message'], context);
+      throw Exception(decoded['message']);
+    }
+  }
+}

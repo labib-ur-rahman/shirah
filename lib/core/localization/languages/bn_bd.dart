@@ -56,7 +56,7 @@ const Map<String, String> bnBD = {
   'system_theme_desc': 'সিস্টেম সেটিংস অনুসরণ করুন',
   'choose_language': 'আপনার ভাষা নির্বাচন করুন',
   'choose_language_subtitle':
-      'shirah ইংরেজি ও বাংলা — দুই ভাষাতেই উপলব্ধ। চালিয়ে যেতে আপনার পছন্দের ভাষা নির্বাচন করুন।',
+      'SHIRAH ইংরেজি ও বাংলা — দুই ভাষাতেই উপলব্ধ। চালিয়ে যেতে আপনার পছন্দের ভাষা নির্বাচন করুন।',
   'english': 'English',
   'bangla': 'বাংলা',
   'english_desc': 'English (US)',
@@ -365,6 +365,28 @@ const Map<String, String> bnBD = {
   'payment_pending_message': 'আপনার পেমেন্ট অপেক্ষমাণ। নিশ্চিত হলে আমরা জানাব।',
   'payment_cancelled_message': 'পেমেন্ট বাতিল করা হয়েছে।',
   'payment_failed_message': 'পেমেন্ট ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
+
+  // ==================== Payment Result Dialog ====================
+  'payment_result_done': 'সম্পন্ন',
+  'payment_result_retry': 'আবার চেষ্টা করুন',
+  'payment_result_close': 'বন্ধ করুন',
+  'payment_result_transaction_id': 'ট্রানজেকশন আইডি',
+  'payment_result_amount': 'পরিমাণ',
+  'payment_result_method': 'পেমেন্ট পদ্ধতি',
+  'payment_result_verified_title': 'অ্যাকাউন্ট যাচাইকৃত!',
+  'payment_result_verified_message':
+      'অভিনন্দন! আপনার অ্যাকাউন্ট এখন যাচাইকৃত। আপনি এখন রিওয়ার্ড পয়েন্ট অর্জন করতে এবং প্রিমিয়াম ফিচার ব্যবহার করতে পারবেন।',
+  'payment_result_subscribed_title': 'প্রো সক্রিয়!',
+  'payment_result_subscribed_message':
+      'প্রো-তে স্বাগতম! আপনার সাবস্ক্রিপশন সক্রিয় হয়েছে সমস্ত প্রিমিয়াম ফিচারে আজীবন অ্যাক্সেস সহ।',
+  'payment_result_pending_title': 'পেমেন্ট অপেক্ষমাণ',
+  'payment_result_pending_message':
+      'আপনার পেমেন্ট প্রক্রিয়াধীন। নিশ্চিত হলে আমরা জানাব। এটি সাধারণত কয়েক মিনিট সময় নেয়।',
+  'payment_result_failed_message':
+      'আপনার পেমেন্ট সম্পন্ন করা যায়নি। অনুগ্রহ করে আপনার ব্যালেন্স চেক করুন এবং আবার চেষ্টা করুন।',
+  'payment_result_cancelled_message':
+      'আপনি পেমেন্ট বাতিল করেছেন। কোনো চার্জ করা হয়নি। আপনি যেকোনো সময় আবার চেষ্টা করতে পারেন।',
+  'payment_result_congrats': 'SHIRAH পরিবারে স্বাগতম!',
 
   // ==================== Subscription ====================
   'subscription': 'সাবস্ক্রিপশন',

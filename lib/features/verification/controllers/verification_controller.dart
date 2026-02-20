@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:shirah/core/common/widgets/popups/custom_snackbar.dart';
 import 'package:shirah/core/localization/app_string_localizations.dart';
 import 'package:shirah/core/services/logger_service.dart';
 import 'package:shirah/data/models/payment/payment_transaction_model.dart';
 import 'package:shirah/data/repositories/payment_repository.dart';
 import 'package:shirah/features/profile/controllers/user_controller.dart';
+import 'package:shirah/features/verification/views/widgets/payment_result_dialog.dart';
 import 'package:uddoktapay/models/credentials.dart';
 import 'package:uddoktapay/models/customer_model.dart';
 import 'package:uddoktapay/models/request_response.dart';
@@ -33,6 +35,9 @@ class VerificationController extends GetxController {
   // Stores the 'data' sub-map from the getPaymentConfig Cloud Function response
   final Rx<Map<String, dynamic>> paymentConfig = Rx<Map<String, dynamic>>({});
 
+  /// Holds the last error message if config loading failed (for debugging)
+  final RxnString configError = RxnString(null);
+
   // ===== Getters =====
   bool get isVerified =>
       UserController.instance.user.value?.status.verified ?? false;
@@ -57,10 +62,11 @@ class VerificationController extends GetxController {
       (paymentConfig.value['subscriptionPriceBDT'] as num?)?.toDouble() ??
       400.0;
 
-  // Config is ready if: sandbox mode (no key needed by SDK), OR we have an API key
+  // Config is ready when we have the essential credentials for the SDK
   bool get hasConfig =>
       paymentConfig.value.isNotEmpty &&
-      (isSandboxMode || uddoktaPayApiKey.isNotEmpty);
+      uddoktaPayApiKey.isNotEmpty &&
+      uddoktaPayPanelURL.isNotEmpty;
 
   @override
   void onInit() {
@@ -70,11 +76,14 @@ class VerificationController extends GetxController {
 
   // ===== PAYMENT CONFIG =====
 
-  /// Load payment configuration from Cloud Functions
-  /// Unwraps the 'data' sub-map so getters can access fields directly.
-  Future<void> loadPaymentConfig() async {
+  /// Load payment configuration from Cloud Functions.
+  /// Returns `true` if config loaded successfully, `false` otherwise.
+  /// On failure, stores the error in [configError] so callers can surface it.
+  Future<bool> loadPaymentConfig() async {
     try {
       isLoadingConfig.value = true;
+      configError.value = null;
+
       final response = await _paymentRepo.getPaymentConfig();
       // CF returns { success, message, data: { isSandbox, apiKey, panelURL, ... } }
       // Firebase nested maps come back as Map<Object?, Object?> — must convert explicitly
@@ -83,11 +92,18 @@ class VerificationController extends GetxController {
           ? Map<String, dynamic>.from(rawData as Map)
           : <String, dynamic>{};
       paymentConfig.value = data;
+
       LoggerService.info(
-        '✅ Payment config loaded: sandbox=${data['isSandbox']}',
+        '✅ Payment config loaded: sandbox=${data['isSandbox']}, '
+        'hasApiKey=${(data['apiKey']?.toString() ?? '').isNotEmpty}, '
+        'panelURL=${data['panelURL']}',
       );
+      return true;
     } catch (e) {
+      final errorMsg = e.toString();
+      configError.value = errorMsg;
       LoggerService.error('Failed to load payment config', e);
+      return false;
     } finally {
       isLoadingConfig.value = false;
     }
@@ -135,13 +151,22 @@ class VerificationController extends GetxController {
 
       // Always fetch fresh config so isSandbox / keys are current.
       // Do NOT rely on the cached observable — config may have changed in Firestore.
-      await loadPaymentConfig();
+      final configLoaded = await loadPaymentConfig();
 
-      if (!hasConfig) {
-        AppSnackBar.errorSnackBar(
-          title: AppStrings.error,
-          message: AppStrings.paymentConfigError,
+      if (!configLoaded || !hasConfig) {
+        // Show the actual error to the user so we know WHY it failed.
+        final detail = configError.value;
+        final msg = detail != null && detail.isNotEmpty
+            ? '${AppStrings.paymentConfigError}\n\n$detail'
+            : AppStrings.paymentConfigError;
+
+        LoggerService.error(
+          '💳 Config check failed: configLoaded=$configLoaded, '
+          'hasConfig=$hasConfig, isSandbox=$isSandboxMode, '
+          'apiKey=${uddoktaPayApiKey.isNotEmpty}, configError=$detail',
         );
+
+        AppSnackBar.errorSnackBar(title: AppStrings.error, message: msg);
         return;
       }
 
@@ -161,7 +186,7 @@ class VerificationController extends GetxController {
           : 'user@shirah.app';
 
       final customerDetails = CustomerDetails(
-        fullName: fullName.isEmpty ? 'Shirah User' : fullName,
+        fullName: fullName.isEmpty ? 'SHIRAH User' : fullName,
         email: email,
       );
 
@@ -175,38 +200,53 @@ class VerificationController extends GetxController {
       // ⚠️ Do NOT show EasyLoading before UddoktaPay.createPayment().
       // The loading overlay would cover the payment WebView.
       // Loading is shown AFTER the WebView closes (during CF processing).
-      late final RequestResponse result;
-      if (sandboxMode) {
-        // Sandbox: SDK uses built-in endpoint + redirect URL — no credentials needed
-        result = await UddoktaPay.createPayment(
-          context: Get.context!,
-          customer: customerDetails,
-          amount: amount.toStringAsFixed(2),
-        );
-      } else {
-        // Production: must pass credentials fetched from Firestore config.
-        // redirectURL must start with https:// so the SDK can intercept it in WebView.
-        final rawRedirect = uddoktaPayRedirectURL;
-        final redirectURL = rawRedirect.startsWith('http')
-            ? rawRedirect
-            : 'https://$rawRedirect';
 
-        LoggerService.info(
-          '💳 Production credentials | panelURL: $uddoktaPayPanelURL | '
-          'redirectURL: $redirectURL',
-        );
+      // === ALWAYS pass credentials to UddoktaPay SDK (both sandbox & production) ===
+      //
+      // WHY: The SDK's sandbox fallback (credentials=null) uses hardcoded
+      // 'programmingwormhole.com' for redirect/cancel URLs. That domain shows
+      // "Forbidden" and breaks the WebView intercept. By ALWAYS providing
+      // credentials we control ALL URLs ourselves.
+      //
+      // CRITICAL — redirectURL MUST be domain-only (no scheme):
+      //   The SDK's WebView intercept checks: uri.host.contains(redirectURL)
+      //   uri.host never includes the scheme, so passing
+      //   'https://domain.com' will ALWAYS fail the match.
+      //   Correct: 'shirahsoft.paymently.io'  Wrong: 'https://shirahsoft.paymently.io'
+      //
+      // CRITICAL — panelURL MUST be base domain with trailing slash:
+      //   The SDK appends '/api/checkout-v2' internally to panelURL.
+      //   panelURL = 'https://domain.io/'  → API = 'https://domain.io//api/checkout-v2' (OK)
+      //   panelURL = 'https://domain.io/api/checkout-v2' → DOUBLED path (404 error)
+      //   The SDK also builds cancel_url as '${panelURL}checkout/cancel',
+      //   so trailing slash is required to produce '/checkout/cancel'.
 
-        result = await UddoktaPay.createPayment(
-          context: Get.context!,
-          customer: customerDetails,
-          amount: amount.toStringAsFixed(2),
-          credentials: UddoktapayCredentials(
-            apiKey: uddoktaPayApiKey,
-            panelURL: uddoktaPayPanelURL,
-            redirectURL: redirectURL,
-          ),
-        );
+      // Strip scheme and trailing slashes from redirectURL — must be domain-only
+      String redirectURL = uddoktaPayRedirectURL
+          .replaceAll(RegExp(r'^https?://'), '')
+          .replaceAll(RegExp(r'/+$'), '');
+
+      // Fallback for empty redirectURL (e.g. sandbox config)
+      if (redirectURL.isEmpty) {
+        redirectURL = 'shirahsoft.paymently.io';
       }
+
+      LoggerService.info(
+        '💳 ${sandboxMode ? "SANDBOX" : "PRODUCTION"} credentials | '
+        'panelURL: $uddoktaPayPanelURL | redirectURL: $redirectURL',
+      );
+
+      late final RequestResponse result;
+      result = await UddoktaPay.createPayment(
+        context: Get.context!,
+        customer: customerDetails,
+        amount: amount.toStringAsFixed(2),
+        credentials: UddoktapayCredentials(
+          apiKey: uddoktaPayApiKey,
+          panelURL: uddoktaPayPanelURL,
+          redirectURL: redirectURL,
+        ),
+      );
 
       LoggerService.info('💳 Payment WebView result: ${result.status}');
 
@@ -215,7 +255,7 @@ class VerificationController extends GetxController {
       } else if (result.status == ResponseStatus.pending) {
         await _handlePaymentPending(type: type, paymentResult: result);
       } else {
-        _handlePaymentFailure(result);
+        await _handlePaymentFailure(result, type: type, amount: amount);
       }
     } catch (e) {
       EasyLoading.dismiss();
@@ -255,11 +295,10 @@ class VerificationController extends GetxController {
       //  - distributes commission to uplines
       //  - returns { success: true, data: { verified, subscribed } }
       //
-      // IMPORTANT: paymentResult.toJson() serializes 'status' as a Dart enum
-      // (e.g. ResponseStatus.completed) which the Cloud Function cannot parse.
-      // We must override it with the plain string value the CF expects.
-      final payload = Map<String, dynamic>.from(paymentResult.toJson())
-        ..['status'] = _responseStatusToString(paymentResult.status);
+      // IMPORTANT: The UddoktaPay SDK's toJson() uses snake_case keys
+      // (e.g. "full_name", "invoice_id") but the Cloud Function expects
+      // camelCase keys (e.g. "fullName", "invoiceId"). We must map them.
+      final payload = _buildCamelCasePayload(paymentResult);
 
       final txResult = await _paymentRepo.createPaymentTransaction(
         type: type,
@@ -272,19 +311,33 @@ class VerificationController extends GetxController {
       final success = txResult['success'] as bool? ?? false;
 
       if (success) {
-        AppSnackBar.successSnackBar(
-          title: AppStrings.success,
-          message: type == 'verification'
-              ? AppStrings.verificationSuccess
-              : AppStrings.subscriptionSuccess,
-        );
         // Refresh user so UI reflects new verified/subscribed state
         await UserController.instance.refreshUser();
+
+        // Show premium success dialog with user profile info
+        await PaymentResultDialog.show(
+          type: PaymentResultType.success,
+          paymentType: type,
+          title: type == 'verification'
+              ? AppStrings.paymentResultVerifiedTitle
+              : AppStrings.paymentResultSubscribedTitle,
+          message: type == 'verification'
+              ? AppStrings.paymentResultVerifiedMessage
+              : AppStrings.paymentResultSubscribedMessage,
+          transactionId: paymentResult.invoiceId,
+          amount: paymentResult.amount,
+          paymentMethod: paymentResult.paymentMethod,
+          onPrimaryAction: () => Get.back(),
+        );
       } else {
         // CF returned success: false (should be rare)
-        AppSnackBar.showInfoSnackBar(
+        await PaymentResultDialog.show(
+          type: PaymentResultType.pending,
+          paymentType: type,
           title: AppStrings.paymentSuccessful,
           message: AppStrings.paymentBeingProcessed,
+          transactionId: paymentResult.invoiceId,
+          onPrimaryAction: () => Get.back(),
         );
       }
 
@@ -302,17 +355,22 @@ class VerificationController extends GetxController {
     required RequestResponse paymentResult,
   }) async {
     try {
-      final payload = Map<String, dynamic>.from(paymentResult.toJson())
-        ..['status'] = _responseStatusToString(paymentResult.status);
+      final payload = _buildCamelCasePayload(paymentResult);
 
       await _paymentRepo.createPaymentTransaction(
         type: type,
         uddoktapayResponse: payload,
       );
 
-      AppSnackBar.warningSnackBar(
-        title: AppStrings.verificationPending,
-        message: AppStrings.paymentPendingMessage,
+      // Show pending result dialog
+      await PaymentResultDialog.show(
+        type: PaymentResultType.pending,
+        paymentType: type,
+        title: AppStrings.paymentResultPendingTitle,
+        message: AppStrings.paymentResultPendingMessage,
+        transactionId: paymentResult.invoiceId,
+        amount: paymentResult.amount,
+        onPrimaryAction: () => Get.back(),
       );
 
       // Refresh payment history
@@ -323,17 +381,28 @@ class VerificationController extends GetxController {
     }
   }
 
-  /// Handle failed/cancelled payment
-  void _handlePaymentFailure(RequestResponse paymentResult) {
+  /// Handle failed/cancelled payment — show result dialog with working retry.
+  ///
+  /// The `onRetry` callback closes the dialog and re-invokes the full payment
+  /// flow (`_processPayment`) so the user can try again without navigating away.
+  Future<void> _handlePaymentFailure(
+    RequestResponse paymentResult, {
+    required String type,
+    required double amount,
+  }) async {
     if (paymentResult.status == ResponseStatus.canceled) {
-      AppSnackBar.warningSnackBar(
+      await PaymentResultDialog.show(
+        type: PaymentResultType.cancelled,
         title: AppStrings.paymentCancelled,
-        message: AppStrings.paymentCancelledMessage,
+        message: AppStrings.paymentResultCancelledMessage,
+        onRetry: () => _processPayment(type: type, amount: amount),
       );
     } else {
-      AppSnackBar.errorSnackBar(
+      await PaymentResultDialog.show(
+        type: PaymentResultType.failed,
         title: AppStrings.paymentFailed,
-        message: AppStrings.paymentFailedMessage,
+        message: AppStrings.paymentResultFailedMessage,
+        onRetry: () => _processPayment(type: type, amount: amount),
       );
     }
   }
@@ -351,6 +420,27 @@ class VerificationController extends GetxController {
       default:
         return 'ERROR';
     }
+  }
+
+  /// Build a camelCase-keyed map from the UddoktaPay SDK response.
+  ///
+  /// The SDK's `toJson()` uses snake_case (e.g. `full_name`, `invoice_id`),
+  /// but the Cloud Function expects camelCase (e.g. `fullName`, `invoiceId`).
+  /// This helper also converts the ResponseStatus enum to a plain string.
+  Map<String, dynamic> _buildCamelCasePayload(RequestResponse result) {
+    return {
+      'fullName': result.fullName ?? '',
+      'email': result.email ?? '',
+      'amount': result.amount ?? '0.00',
+      'fee': result.fee ?? '0.00',
+      'chargedAmount': result.chargedAmount ?? '0.00',
+      'invoiceId': result.invoiceId ?? '',
+      'paymentMethod': result.paymentMethod ?? '',
+      'senderNumber': result.senderNumber ?? '',
+      'transactionId': result.transactionId ?? '',
+      'date': result.date?.toIso8601String() ?? '',
+      'status': _responseStatusToString(result.status),
+    };
   }
 
   // ===== PAYMENT HISTORY =====
@@ -410,13 +500,13 @@ class VerificationController extends GetxController {
   IconData getStatusIcon(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.completed:
-        return Icons.check_circle;
+        return Iconsax.tick_circle;
       case PaymentStatus.pending:
-        return Icons.access_time;
+        return Iconsax.clock;
       case PaymentStatus.canceled:
-        return Icons.cancel;
+        return Iconsax.close_circle;
       case PaymentStatus.failed:
-        return Icons.error;
+        return Iconsax.warning_2;
     }
   }
 }
