@@ -378,6 +378,8 @@ const Map<String, String> bnBD = {
   'subscription_monthly': 'একবারের · আজীবন',
   'subscription_already_active': 'আপনার সাবস্ক্রিপশন ইতিমধ্যে সক্রিয়।',
   'subscription_success': 'প্রো সাবস্ক্রিপশন সফলভাবে সক্রিয় হয়েছে!',
+  'subscription_includes_verification':
+      'সাবস্ক্রিপশনে অ্যাকাউন্ট ভেরিফিকেশন অন্তর্ভুক্ত — এক পেমেন্টে দুটোই পান!',
 
   // ==================== Error Messages ====================
   'network_error': 'নেটওয়ার্ক ত্রুটি। আপনার সংযোগ পরীক্ষা করুন।',

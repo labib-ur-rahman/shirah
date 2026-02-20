@@ -376,6 +376,8 @@ const Map<String, String> enUS = {
   'subscription_monthly': 'One-time · Lifetime',
   'subscription_already_active': 'Your subscription is already active.',
   'subscription_success': 'Pro subscription activated successfully!',
+  'subscription_includes_verification':
+      'Subscription includes account verification — get both in one purchase!',
 
   // ==================== Error Messages ====================
   'network_error': 'Network error. Please check your connection.',

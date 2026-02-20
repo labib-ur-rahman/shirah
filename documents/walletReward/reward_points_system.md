@@ -124,15 +124,24 @@ Reward-distributed value: **125৳**
 
 Total Reward Points: **12,500**
 
-#### Verified Upline Distribution (Level 1–5 only)
+#### Verified Upline Distribution (Level 1–10)
 
 | Level | % Share | Reward Points |
 | ----- | ------- | ------------- |
-| 1     | 40%     | 5,000         |
-| 2     | 25%     | 3,125         |
-| 3     | 15%     | 1,875         |
+| 1     | 25%     | 3,125         |
+| 2     | 15%     | 1,875         |
+| 3     | 12%     | 1,500         |
 | 4     | 10%     | 1,250         |
-| 5     | 10%     | 1,250         |
+| 5     | 8%      | 1,000         |
+| 6     | 7%      | 875           |
+| 7     | 6%      | 750           |
+| 8     | 6%      | 750           |
+| 9     | 6%      | 750           |
+| 10    | 5%      | 625           |
+
+> **Note:** If a user subscribes directly (without buying verification first),
+> they get both verification and subscription in a single transaction.
+> The subscription flow auto-verifies the account.
 
 ---
 

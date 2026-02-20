@@ -1,8 +1,8 @@
 # 📦 SHIRAH – Complete Firestore Database Structure (Single Source of Truth)
 
 > **Document Type:** Technical Reference – Firestore Schema  
-> **Version:** 1.1  
-> **Last Updated:** February 6, 2026  
+> **Version:** 1.2  
+> **Last Updated:** February 20, 2026  
 > **Synced With:** Cloud Functions (`functions/src/`) & Architecture Documents (`documents/`)  
 > **Purpose:** One single file to understand every Firestore collection, document, field, data type, and enum value used in the entire SHIRAH system.
 
@@ -600,7 +600,7 @@ configurations (Collection)
     │
     ├── network : Map                    # Network/MLM depth settings
     │   ├── maxDepth : Number            # Maximum upline levels (default: 15)
-    │   └── verificationDepth : Number   # Levels for verification rewards (default: 5)
+    │   └── verificationDepth : Number   # Levels for verification rewards (default: 10)
     │
     ├── inviteCode : Map                 # Invite code generation rules
     │   ├── prefix : String              # Code prefix (default: "S")
@@ -659,19 +659,35 @@ configurations (Collection)
     │   ├── priceBDT : Number            # Verification price (default: 250)
     │   ├── rewardDistributedBDT : Number# Amount distributed to uplines (default: 125)
     │   ├── totalRewardPoints : Number   # Reward points given to verifier (default: 12500)
-    │   └── levelDistribution : Array<Map> # Per-level distribution configuration (5 levels)
+    │   └── levelDistribution : Array<Map> # Per-level distribution configuration (10 levels)
     │       ├── [0] : Map                # Level 1 configuration
     │       │   ├── level : Number       # Level index (1)
-    │       │   ├── percent : Number     # Percentage share (40 = 40%, whole number 0-100)
-    │       │   └── points : Number      # Reward points to distribute (5000)
-    │       ├── [1] : Map                # Level 2 (percent: 25, points: 3125)
-    │       ├── [2] : Map                # Level 3 (percent: 15, points: 1875)
+    │       │   ├── percent : Number     # Percentage share (25%)
+    │       │   └── points : Number      # Reward points to distribute (3125)
+    │       ├── [1] : Map                # Level 2 (percent: 15, points: 1875)
+    │       ├── [2] : Map                # Level 3 (percent: 12, points: 1500)
     │       ├── [3] : Map                # Level 4 (percent: 10, points: 1250)
-    │       └── [4] : Map                # Level 5 (percent: 10, points: 1250)
+    │       ├── [4] : Map                # Level 5 (percent: 8, points: 1000)
+    │       ├── [5] : Map                # Level 6 (percent: 7, points: 875)
+    │       ├── [6] : Map                # Level 7 (percent: 6, points: 750)
+    │       ├── [7] : Map                # Level 8 (percent: 6, points: 750)
+    │       ├── [8] : Map                # Level 9 (percent: 6, points: 750)
+    │       └── [9] : Map                # Level 10 (percent: 5, points: 625)
     │
     ├── wallet : Map                     # Wallet & withdrawal rules
     │   ├── minWithdrawalBDT : Number    # Minimum withdrawal (default: 100)
     │   └── withdrawalFeePer1000 : Number# Fee per 1000৳ withdrawn (default: 20)
+    │
+    ├── uddoktaPay : Map                 # UddoktaPay payment gateway configuration
+    │   ├── isSandbox : Boolean          # true = use sandbox keys, false = use production keys
+    │   ├── sandbox : Map                # Sandbox environment credentials
+    │   │   ├── apiKey : String          # Sandbox API key (e.g., "982d381360a6...")
+    │   │   ├── panelURL : String        # Full checkout-v2 endpoint: "https://sandbox.uddoktapay.com/api/checkout-v2"
+    │   │   └── redirectURL : String     # Leave empty "" — Flutter SDK handles sandbox internally, no credentials needed
+    │   └── production : Map             # Production environment credentials
+    │       ├── apiKey : String          # Production API key (e.g., "gimjPurlft...")
+    │       ├── panelURL : String        # Full checkout-v2 endpoint: "https://shirahsoft.paymently.io/api/checkout-v2"
+    │       └── redirectURL : String     # Domain ONLY (no https://), e.g. "shirahsoft.paymently.io" — registered domain in UddoktaPay panel
     │
     └── _meta : Map                      # Metadata (auto-managed)
         ├── createdAt : Timestamp        # First seed timestamp
@@ -734,19 +750,26 @@ User signs up with invite code
 ```
 User verifies profile (250৳)
     │
-    ├── 1. users/{uid}.status.verified = true
-    ├── 2. users/{uid}.permissions.canPost = true
-    ├── 3. users/{uid}.permissions.canWithdraw = true
-    ├── 4. user_network_stats/{uplineUid}.level{N}.verified++ for each upline
-    ├── 5. user_relations → descendantVerified = true (batch update)
-    ├── 6. reward_transactions/{autoId} × 5  → Verification rewards to 5 upline levels
-    │      Level 1: 5,000 pts (40%)
-    │      Level 2: 3,125 pts (25%)
-    │      Level 3: 1,875 pts (15%)
-    │      Level 4: 1,250 pts (10%)
-    │      Level 5: 1,250 pts (10%)
+    ├── 1. payment_transactions/{autoId}                → UddoktaPay payment record
+    ├── 2. users/{uid}.status.verified = true
+    ├── 3. users/{uid}.permissions.canPost = true
+    ├── 4. users/{uid}.permissions.canWithdraw = true
+    ├── 5. user_network_stats/{uplineUid}.level{N}.verified++ for each upline
+    ├── 6. user_relations → descendantVerified = true (batch update)
+    ├── 7. reward_transactions/{autoId} × 10  → Verification rewards to 10 upline levels
+    │      Level 1:  3,125 pts (25%)
+    │      Level 2:  1,875 pts (15%)
+    │      Level 3:  1,500 pts (12%)
+    │      Level 4:  1,250 pts (10%)
+    │      Level 5:  1,000 pts (8%)
+    │      Level 6:    875 pts (7%)
+    │      Level 7:    750 pts (6%)
+    │      Level 8:    750 pts (6%)
+    │      Level 9:    750 pts (6%)
+    │      Level 10:   625 pts (5%)
     │      Total distributed: 12,500 pts (= 125৳)
-    └── 7. audit_logs/{autoId} → user.verify
+    ├── 8. app_funding_transactions/{autoId} × N → Undistributed commission (if uplines missing/unverified)
+    └── 9. audit_logs/{autoId} → user.verify
 ```
 
 ### Subscription Flow
@@ -869,8 +892,13 @@ Admin rejects
 |----------------|-------------------|
 | `createUser` | `users`, `invite_codes`, `user_uplines`, `user_relations`, `user_network_stats`, `audit_logs` |
 | `completeGoogleSignIn` | `users`, `invite_codes`, `user_uplines`, `user_relations`, `user_network_stats`, `audit_logs` |
-| `verifyUserProfile` | `users`, `user_network_stats`, `user_relations`, `reward_transactions`, `audit_logs` |
-| `subscribeUser` | `users`, `user_network_stats`, `user_relations`, `reward_transactions`, `audit_logs` |
+| `verifyUserProfile` | `users`, `user_network_stats`, `user_relations`, `reward_transactions`, `app_funding_transactions`, `audit_logs` |
+| `subscribeUser` | `users`, `user_network_stats`, `user_relations`, `reward_transactions`, `app_funding_transactions`, `audit_logs` |
+| `createPaymentTransaction` | `payment_transactions`, `users`, `user_network_stats`, `user_relations`, `reward_transactions`, `app_funding_transactions`, `audit_logs` |
+| `adminApprovePayment` | `payment_transactions`, `users`, `user_network_stats`, `user_relations`, `reward_transactions`, `app_funding_transactions`, `audit_logs` |
+| `getPaymentHistory` | `payment_transactions` (read-only) |
+| `getAdminPaymentTransactions` | `payment_transactions` (read-only) |
+| `getPaymentConfig` | `configurations` (read-only) |
 | `recordAdView` | `users`, `streak_data`, `ad_view_logs`, `reward_transactions` |
 | `convertRewardPoints` | `users`, `reward_transactions`, `wallet_transactions`, `audit_logs` |
 | `requestWithdrawal` | `users`, `withdrawal_requests`, `wallet_transactions`, `audit_logs` |
@@ -892,6 +920,9 @@ Admin rejects
 | `seedConfigurations` | `configurations`, `audit_logs` |
 | `updateAppConfig` | `configurations`, `audit_logs` |
 | `getAppConfigAdmin` | `configurations` (read-only) |
+| `initiateRecharge` | `mobile_recharge`, `wallet_transactions`, `users`, `audit_logs` |
+| `getDriveOffers` | `drive_offer_cache` (read-only) |
+| `getRechargeHistory` | `mobile_recharge` (read-only) |
 
 ---
 
@@ -931,7 +962,7 @@ Admin rejects
 ```
 REGION:              "asia-south1" (Mumbai, closest to Bangladesh)  [STATIC — code only]
 MAX_NETWORK_DEPTH:   15 levels                                     [DYNAMIC → network.maxDepth]
-VERIFICATION_DEPTH:  5 levels (for verification rewards)           [DYNAMIC → network.verificationDepth]
+VERIFICATION_DEPTH:  10 levels (for verification rewards)          [DYNAMIC → network.verificationDepth]
 INVITE_CODE_LENGTH:  8 characters (S + 6 random + L)               [DYNAMIC → inviteCode.*]
 POINTS_PER_AD:       30                                            [DYNAMIC → ads.pointsPerAd]
 MAX_ADS_PER_DAY:     20                                            [DYNAMIC → ads.maxDailyAds]
@@ -1188,7 +1219,7 @@ payment_transactions (Collection)
     ├── type : String                    # ENUM: "verification" | "subscription"
     ├── amount : Number                  # Payment amount in BDT
     ├── status : String                  # ENUM: "pending" | "completed" | "canceled" | "failed"
-    ├── paymentMethod : String           # e.g., "bkash", "nagad", "rocket"
+    ├── paymentMethod : String           # e.g., "bkash", "nagad", "rocket", "upay"
     ├── invoiceId : String               # UddoktaPay invoice ID
     ├── transactionId : String           # UddoktaPay transaction ID
     ├── senderNumber : String            # Sender's mobile number

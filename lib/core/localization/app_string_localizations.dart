@@ -379,6 +379,8 @@ class AppStrings {
   static String get subscriptionAlreadyActive =>
       'subscription_already_active'.tr;
   static String get subscriptionSuccess => 'subscription_success'.tr;
+  static String get subscriptionIncludesVerification =>
+      'subscription_includes_verification'.tr;
 
   // ==================== Error Messages ====================
   static String get networkError => 'network_error'.tr;
