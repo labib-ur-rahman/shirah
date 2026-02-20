@@ -147,6 +147,12 @@ class FirebasePaths {
   /// User avatar storage path
   static String userAvatar(String uid) => 'avatars/$uid';
 
+  /// User cover photo storage path
+  static String userCover(String uid) => 'covers/$uid';
+
+  /// User network stats collection
+  static const String userNetworkStats = 'user_network_stats';
+
   /// Post images storage path
   static String postImage(String postId, String imageId) =>
       'posts/$postId/$imageId';

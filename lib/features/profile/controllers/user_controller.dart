@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:shirah/core/services/firebase_service.dart';
@@ -18,6 +19,17 @@ class UserController extends GetxController {
   final Rx<UserModel?> user = Rx<UserModel?>(null);
   final RxBool isLoading = false.obs;
   final RxBool isUpdating = false.obs;
+  final RxBool isBioUpdating = false.obs;
+
+  // ===== Image Upload State =====
+  final RxBool isUploadingAvatar = false.obs;
+  final RxBool isUploadingCover = false.obs;
+
+  // ===== Community State =====
+  final RxInt communityMemberCount = 0.obs;
+
+  // ===== Bio State (fetched separately from otherInfo) =====
+  final RxString bio = ''.obs;
 
   // ===== Streams =====
   StreamSubscription<UserModel?>? _userSubscription;
@@ -49,6 +61,9 @@ class UserController extends GetxController {
   double get balance => user.value?.wallet.balance ?? 0.0;
   int get rewardPoints => user.value?.wallet.rewardPoints ?? 0;
 
+  // Bio (from otherInfo — loaded separately)
+  String get userBio => bio.value;
+
   // Flags
   bool get isAdmin => user.value?.flags.isAdmin ?? false;
   bool get isModerator => user.value?.flags.isModerator ?? false;
@@ -57,12 +72,39 @@ class UserController extends GetxController {
   void onInit() {
     super.onInit();
     _initUserStream();
+    fetchBio();
+    fetchCommunityCount();
   }
 
   @override
   void onClose() {
     _userSubscription?.cancel();
     super.onClose();
+  }
+
+  /// Fetch bio from Firestore otherInfo map
+  Future<void> fetchBio() async {
+    final currentUid = uid;
+    if (currentUid == null) return;
+    try {
+      bio.value = await _userRepo.fetchBio(currentUid);
+    } catch (_) {}
+  }
+
+  /// Update bio in Firestore at users/{uid}/otherInfo.bio
+  Future<bool> updateBio(String newBio) async {
+    final currentUid = uid;
+    if (currentUid == null) return false;
+    try {
+      isBioUpdating.value = true;
+      await _userRepo.updateBio(currentUid, newBio.trim());
+      bio.value = newBio.trim();
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      isBioUpdating.value = false;
+    }
   }
 
   /// Initialize user stream
@@ -192,5 +234,75 @@ class UserController extends GetxController {
     if (currentUid == null) return 0;
 
     return _userRepo.countDirectReferrals(currentUid);
+  }
+
+  // ===== IMAGE UPLOAD =====
+
+  /// Upload and set new profile picture
+  Future<bool> uploadProfilePicture(File imageFile) async {
+    final currentUid = uid;
+    if (currentUid == null) return false;
+    try {
+      isUploadingAvatar.value = true;
+      final url = await _userRepo.uploadAvatarImage(currentUid, imageFile);
+      await _userRepo.updateAvatar(currentUid, url);
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      isUploadingAvatar.value = false;
+    }
+  }
+
+  /// Upload and set new cover photo
+  Future<bool> uploadCoverPicture(File imageFile) async {
+    final currentUid = uid;
+    if (currentUid == null) return false;
+    try {
+      isUploadingCover.value = true;
+      final url = await _userRepo.uploadCoverImage(currentUid, imageFile);
+      await _userRepo.updateCoverURL(currentUid, url);
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      isUploadingCover.value = false;
+    }
+  }
+
+  // ===== COMMUNITY =====
+
+  /// Fetch total community member count from user_network_stats
+  Future<void> fetchCommunityCount() async {
+    final currentUid = uid;
+    if (currentUid == null) return;
+    try {
+      communityMemberCount.value = await _userRepo.fetchCommunityMemberCount(
+        currentUid,
+      );
+    } catch (_) {}
+  }
+
+  // ===== PROFILE EDIT =====
+
+  /// Update first/last name directly in Firestore
+  Future<bool> updateProfileName({
+    required String firstName,
+    required String lastName,
+  }) async {
+    final currentUid = uid;
+    if (currentUid == null || user.value == null) return false;
+    try {
+      isUpdating.value = true;
+      await _userRepo.updateUser(currentUid, {
+        'identity.firstName': firstName.trim(),
+        'identity.lastName': lastName.trim(),
+      });
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      isUpdating.value = false;
+    }
   }
 }

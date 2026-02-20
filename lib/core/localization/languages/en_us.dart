@@ -530,4 +530,62 @@ const Map<String, String> enUS = {
   'admin_native_ad_no_ads': 'No native ads found',
   'admin_native_ad_no_ads_subtitle':
       'Create your first native ad to display in the feed.',
+
+  // ==================== User Profile Screen ====================
+  'profile_followers': 'Followers',
+  'profile_following': 'Following',
+  'profile_community_members': 'Community Members',
+  'profile_sell_now': 'Sell Now',
+  'profile_wholesale': 'Wholesale',
+  'profile_max_selling': 'Max Selling',
+  'profile_your_earning_upto': 'Your earning upto',
+  'profile_per_sale': 'Per Sale',
+  'profile_job_post': 'Job Post',
+  'profile_colors': 'Colors:',
+  'profile_sizes': 'Sizes:',
+  'profile_tab_community': 'Community',
+  'profile_tab_buy_sell': 'Buy & Sell',
+  'profile_tab_job_post': 'Job Post',
+  'profile_tab_products': 'On-Demand',
+  'profile_bio_add': 'Add your bio...',
+  'profile_bio_empty': 'Tell the world about yourself. Tap to add bio.',
+  'profile_bio_edit': 'Edit Bio',
+  'profile_bio_dialog_title': 'Update Your Bio',
+  'profile_bio_hint': 'Share a little about yourself...',
+  'profile_bio_save': 'Save Bio',
+  'profile_bio_saving': 'Saving...',
+  'profile_bio_saved': 'Bio updated successfully',
+  'profile_bio_error': 'Failed to update bio',
+  'profile_bio_max_chars': '150 characters max',
+
+  // ── Image Picker ────────────────────────────────────────────
+  'picker_profile_photo': 'Update Profile Photo',
+  'picker_cover_photo': 'Update Cover Photo',
+  'picker_gallery': 'Choose from Gallery',
+  'picker_camera': 'Take a Photo',
+  'picker_uploading_avatar': 'Uploading profile photo...',
+  'picker_uploading_cover': 'Uploading cover photo...',
+  'picker_avatar_success': 'Profile photo updated',
+  'picker_cover_success': 'Cover photo updated',
+  'picker_upload_failed': 'Upload failed. Please try again.',
+  'picker_permission_denied': 'Permission Denied',
+  'picker_permission_gallery_msg':
+      'Please allow access to your photos in Settings to continue.',
+  'picker_permission_camera_msg':
+      'Please allow camera access in Settings to continue.',
+  'picker_open_settings': 'Open Settings',
+
+  // ── Edit Profile ─────────────────────────────────────────────
+  'edit_profile_title': 'Edit Profile',
+  'edit_first_name': 'First Name',
+  'edit_last_name': 'Last Name',
+  'edit_phone': 'Phone Number',
+  'edit_phone_hint': 'Cannot be changed here',
+  'edit_save_changes': 'Save Changes',
+  'edit_profile_success': 'Profile updated successfully',
+  'edit_profile_failed': 'Failed to update profile',
+  'edit_name_required': 'Name is required',
+
+  // ── Community ────────────────────────────────────────────────
+  'community_members': 'Community Members',
 };

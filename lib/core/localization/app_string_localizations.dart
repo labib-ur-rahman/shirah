@@ -534,4 +534,62 @@ class AppStrings {
   static String get adminNativeAdNoAds => 'admin_native_ad_no_ads'.tr;
   static String get adminNativeAdNoAdsSubtitle =>
       'admin_native_ad_no_ads_subtitle'.tr;
+
+  // ==================== User Profile Screen ====================
+  static String get profileFollowers => 'profile_followers'.tr;
+  static String get profileFollowing => 'profile_following'.tr;
+  static String get profileCommunityMembers => 'profile_community_members'.tr;
+  static String get profileSellNow => 'profile_sell_now'.tr;
+  static String get profileWholesale => 'profile_wholesale'.tr;
+  static String get profileMaxSelling => 'profile_max_selling'.tr;
+  static String get profileYourEarningUpto => 'profile_your_earning_upto'.tr;
+  static String get profilePerSale => 'profile_per_sale'.tr;
+  static String get profileJobPost => 'profile_job_post'.tr;
+  static String get profileColors => 'profile_colors'.tr;
+  static String get profileSizes => 'profile_sizes'.tr;
+  static String get profileTabCommunity => 'profile_tab_community'.tr;
+  static String get profileTabBuySell => 'profile_tab_buy_sell'.tr;
+  static String get profileTabJobPost => 'profile_tab_job_post'.tr;
+  static String get profileTabProducts => 'profile_tab_products'.tr;
+  static String get profileBioAdd => 'profile_bio_add'.tr;
+  static String get profileBioEmpty => 'profile_bio_empty'.tr;
+  static String get profileBioEdit => 'profile_bio_edit'.tr;
+  static String get profileBioDialogTitle => 'profile_bio_dialog_title'.tr;
+  static String get profileBioHint => 'profile_bio_hint'.tr;
+  static String get profileBioSave => 'profile_bio_save'.tr;
+  static String get profileBioSaving => 'profile_bio_saving'.tr;
+  static String get profileBioSaved => 'profile_bio_saved'.tr;
+  static String get profileBioError => 'profile_bio_error'.tr;
+  static String get profileBioMaxChars => 'profile_bio_max_chars'.tr;
+
+  // ── Image Picker ────────────────────────────────────────────
+  static String get pickerProfilePhoto => 'picker_profile_photo'.tr;
+  static String get pickerCoverPhoto => 'picker_cover_photo'.tr;
+  static String get pickerGallery => 'picker_gallery'.tr;
+  static String get pickerCamera => 'picker_camera'.tr;
+  static String get pickerUploadingAvatar => 'picker_uploading_avatar'.tr;
+  static String get pickerUploadingCover => 'picker_uploading_cover'.tr;
+  static String get pickerAvatarSuccess => 'picker_avatar_success'.tr;
+  static String get pickerCoverSuccess => 'picker_cover_success'.tr;
+  static String get pickerUploadFailed => 'picker_upload_failed'.tr;
+  static String get pickerPermissionDenied => 'picker_permission_denied'.tr;
+  static String get pickerPermissionGalleryMsg =>
+      'picker_permission_gallery_msg'.tr;
+  static String get pickerPermissionCameraMsg =>
+      'picker_permission_camera_msg'.tr;
+  static String get pickerOpenSettings => 'picker_open_settings'.tr;
+
+  // ── Edit Profile ─────────────────────────────────────────────
+  static String get editProfileTitle => 'edit_profile_title'.tr;
+  static String get editFirstName => 'edit_first_name'.tr;
+  static String get editLastName => 'edit_last_name'.tr;
+  static String get editPhone => 'edit_phone'.tr;
+  static String get editPhoneHint => 'edit_phone_hint'.tr;
+  static String get editSaveChanges => 'edit_save_changes'.tr;
+  static String get editProfileSuccess => 'edit_profile_success'.tr;
+  static String get editProfileFailed => 'edit_profile_failed'.tr;
+  static String get editNameRequired => 'edit_name_required'.tr;
+
+  // ── Community ────────────────────────────────────────────────
+  static String get communityMembersLabel => 'community_members'.tr;
 }

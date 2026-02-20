@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shirah/core/common/styles/global_text_style.dart';
+import 'package:shirah/core/common/widgets/coming_soon_dialog.dart';
 import 'package:shirah/core/localization/app_string_localizations.dart';
 import 'package:shirah/core/common/widgets/images/custom_circular_image.dart';
 import 'package:shirah/core/services/logger_service.dart';
@@ -15,7 +16,6 @@ import 'package:shirah/features/community/views/screens/create_post_screen.dart'
 import 'package:shirah/features/home/views/widgets/create_post/create_post_shortcut_action_button.dart';
 import 'package:shirah/features/micro_jobs/views/screens/create_micro_job_screen.dart';
 import 'package:shirah/features/profile/controllers/user_controller.dart';
-import 'package:shirah/routes/app_routes.dart';
 
 /// Create Post Section - Post creation shortcut with action buttons
 /// Displays user profile picture, text input placeholder, and quick action buttons
@@ -198,7 +198,13 @@ class CreatePostSection extends StatelessWidget {
                       borderColor: const Color(0xFFDBEAFE),
                       textColor: const Color(0xFF1447E6),
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        ComingSoonDialog.show(
+                          featureName: 'Sell Post',
+                          featureIcon: Iconsax.shopping_cart,
+                          accentColor: const Color(0xFF2B7FFF),
+                        );
+                      },
                     ),
                     SizedBox(width: 8.w),
 
@@ -217,7 +223,13 @@ class CreatePostSection extends StatelessWidget {
                       borderColor: const Color(0xFFFFEDD4),
                       textColor: const Color(0xFFCA3500),
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        ComingSoonDialog.show(
+                          featureName: 'Looking for',
+                          featureIcon: Iconsax.bag,
+                          accentColor: const Color(0xFFFF6900),
+                        );
+                      },
                     ),
                     SizedBox(width: 8.w),
 
@@ -236,7 +248,13 @@ class CreatePostSection extends StatelessWidget {
                       borderColor: const Color(0xFFD0FAE5),
                       textColor: const Color(0xFF007A55),
                       isDark: isDark,
-                      onTap: () {},
+                      onTap: () {
+                        ComingSoonDialog.show(
+                          featureName: 'Add Product',
+                          featureIcon: Iconsax.trend_up,
+                          accentColor: const Color(0xFF00BC7D),
+                        );
+                      },
                     ),
                   ],
                 ),
