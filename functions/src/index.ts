@@ -191,6 +191,8 @@ export {
   getPaymentHistory,
   getAdminPaymentTransactions,
   getPaymentConfig,
+  reVerifyPendingPayment,
+  uddoktapayWebhook,
 } from "./features/payment/payment-operations";
 
 // ============================================

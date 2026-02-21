@@ -594,10 +594,13 @@ class PaymentResultDialog extends StatelessWidget {
     final bool showRetry =
         (type == PaymentResultType.failed ||
         type == PaymentResultType.cancelled);
+    final bool showCheckStatus =
+        type == PaymentResultType.pending && primaryActionText != null;
 
     return Column(
       children: [
-        // Primary button — "Done" for success/pending, "Try Again" for fail/cancel
+        // Primary button — "Done" for success, "Check Status" for pending,
+        // "Try Again" for fail/cancel
         SizedBox(
           width: double.infinity,
           height: 50.h,
@@ -612,7 +615,11 @@ class PaymentResultDialog extends StatelessWidget {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: showRetry ? _accentColor : AppColors.primary,
+              backgroundColor: showRetry
+                  ? _accentColor
+                  : showCheckStatus
+                  ? AppColors.info
+                  : AppColors.primary,
               foregroundColor: AppColors.white,
               elevation: 0,
               shadowColor: Colors.transparent,
@@ -625,6 +632,10 @@ class PaymentResultDialog extends StatelessWidget {
               children: [
                 if (showRetry) ...[
                   Icon(Iconsax.refresh, size: 18.w),
+                  SizedBox(width: 8.w),
+                ],
+                if (showCheckStatus) ...[
+                  Icon(Iconsax.refresh_circle, size: 18.w),
                   SizedBox(width: 8.w),
                 ],
                 Text(
@@ -640,8 +651,8 @@ class PaymentResultDialog extends StatelessWidget {
           ),
         ),
 
-        // Secondary close button for failed/cancelled
-        if (showRetry) ...[
+        // Secondary close button for failed/cancelled and pending with check status
+        if (showRetry || showCheckStatus) ...[
           SizedBox(height: 10.h),
           SizedBox(
             width: double.infinity,

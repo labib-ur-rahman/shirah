@@ -1,6 +1,7 @@
 /**
  * SHIRAH Cloud Functions - Payment Module
- * Handles UddoktaPay payment transaction creation, history, and admin approval
+ * Handles UddoktaPay payment transaction creation, history, admin approval,
+ * and webhook (IPN) processing for auto-approving pending payments.
  */
 
 import * as admin from "firebase-admin";
@@ -380,6 +381,7 @@ export const getPaymentConfig = functions.https.onCall(
     apiKey: string;
     panelURL: string;
     redirectURL: string;
+    webhookURL: string;
     verificationPriceBDT: number;
     subscriptionPriceBDT: number;
   }>> => {
@@ -400,9 +402,389 @@ export const getPaymentConfig = functions.https.onCall(
         apiKey: activeEnv.apiKey,
         panelURL: activeEnv.panelURL,
         redirectURL: activeEnv.redirectURL,
+        webhookURL: activeEnv.webhookURL || "",
         verificationPriceBDT: config.verification.priceBDT,
         subscriptionPriceBDT: config.subscription.priceBDT,
       },
     };
+  }
+);
+
+/**
+ * Cloud Function: Re-verify a pending payment against UddoktaPay API.
+ *
+ * Called from Flutter when user wants to check if their pending payment
+ * has been approved. This calls UddoktaPay's verify-payment API server-side
+ * and auto-processes the payment if status changed to COMPLETED.
+ *
+ * Flow:
+ * 1. Find the payment transaction in Firestore
+ * 2. Call UddoktaPay verify-payment API with the invoiceId
+ * 3. If UddoktaPay says COMPLETED → update Firestore + process verification/subscription
+ * 4. Return the updated status
+ */
+export const reVerifyPendingPayment = functions.https.onCall(
+  { region: REGION },
+  async (request: functions.https.CallableRequest<{
+    paymentTransactionId: string;
+  }>): Promise<ApiResponse<{ status: string; verified?: boolean; subscribed?: boolean }>> => {
+    const uid = validateAuthenticated(request.auth);
+    const { paymentTransactionId } = request.data;
+
+    if (!paymentTransactionId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Payment transaction ID is required"
+      );
+    }
+
+    // Get the payment transaction
+    const paymentRef = db.collection(COLLECTIONS.PAYMENT_TRANSACTIONS).doc(paymentTransactionId);
+    const paymentDoc = await paymentRef.get();
+
+    if (!paymentDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Payment transaction not found");
+    }
+
+    const paymentData = paymentDoc.data() as PaymentTransaction;
+
+    // Only the payment owner can re-verify
+    if (paymentData.uid !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "Not your payment");
+    }
+
+    // Skip if already completed
+    if (paymentData.status === PAYMENT_STATUS.COMPLETED) {
+      return {
+        success: true,
+        message: "Payment is already completed",
+        data: { status: PAYMENT_STATUS.COMPLETED },
+      };
+    }
+
+    // Only re-verify pending payments
+    if (paymentData.status !== PAYMENT_STATUS.PENDING) {
+      return {
+        success: false,
+        message: `Payment is ${paymentData.status}. Only pending payments can be re-verified.`,
+        data: { status: paymentData.status },
+      };
+    }
+
+    // Get UddoktaPay config for API call
+    const config = await getAppConfig();
+    const activeEnv = config.uddoktaPay.isSandbox
+      ? config.uddoktaPay.sandbox
+      : config.uddoktaPay.production;
+
+    if (!activeEnv.apiKey || !activeEnv.panelURL) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "UddoktaPay configuration is incomplete"
+      );
+    }
+
+    // Call UddoktaPay verify-payment API
+    const panelURL = activeEnv.panelURL.replace(/\/+$/, "");
+    const verifyURL = `${panelURL}/api/verify-payment`;
+
+    functions.logger.info("Re-verifying payment with UddoktaPay", {
+      invoiceId: paymentData.invoiceId,
+      verifyURL,
+    });
+
+    const response = await fetch(verifyURL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "RT-UDDOKTAPAY-API-KEY": activeEnv.apiKey,
+      },
+      body: JSON.stringify({ invoice_id: paymentData.invoiceId }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      functions.logger.error("UddoktaPay verify API error", {
+        status: response.status,
+        body: errorBody,
+      });
+      throw new functions.https.HttpsError(
+        "unavailable",
+        `UddoktaPay API returned ${response.status}`
+      );
+    }
+
+    const verifyData = await response.json() as Record<string, unknown>;
+    const uddoktapayStatus = (verifyData.status as string || "").toLowerCase();
+
+    functions.logger.info("UddoktaPay verify response", {
+      invoiceId: paymentData.invoiceId,
+      status: uddoktapayStatus,
+      transactionId: verifyData.transaction_id,
+    });
+
+    // Map UddoktaPay status
+    let newStatus: string;
+    switch (uddoktapayStatus) {
+      case "completed":
+        newStatus = PAYMENT_STATUS.COMPLETED;
+        break;
+      case "pending":
+        newStatus = PAYMENT_STATUS.PENDING;
+        break;
+      default:
+        newStatus = PAYMENT_STATUS.FAILED;
+    }
+
+    // If still pending, just return
+    if (newStatus === PAYMENT_STATUS.PENDING) {
+      return {
+        success: true,
+        message: "Payment is still pending. Please wait for approval.",
+        data: { status: PAYMENT_STATUS.PENDING },
+      };
+    }
+
+    // If completed, auto-process!
+    let verified = false;
+    let subscribed = false;
+
+    if (newStatus === PAYMENT_STATUS.COMPLETED) {
+      // Update payment document
+      await paymentRef.update({
+        status: PAYMENT_STATUS.COMPLETED,
+        processedBy: "re-verify",
+        processedAt: serverTimestamp(),
+        uddoktapayVerifyResponse: verifyData,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Process verification/subscription
+      if (paymentData.type === PAYMENT_TYPES.VERIFICATION) {
+        await processVerification(uid, paymentTransactionId);
+        verified = true;
+      } else if (paymentData.type === PAYMENT_TYPES.SUBSCRIPTION) {
+        await processSubscription(uid, paymentTransactionId);
+        subscribed = true;
+      }
+
+      await createAuditLog({
+        actorUid: uid,
+        actorRole: "user",
+        action: AUDIT_ACTIONS.PAYMENT_ADMIN_APPROVED,
+        targetUid: uid,
+        metadata: {
+          paymentTransactionId,
+          type: paymentData.type,
+          invoiceId: paymentData.invoiceId,
+          approvedVia: "re-verify",
+        },
+      });
+
+      return {
+        success: true,
+        message: `Payment completed! ${paymentData.type === PAYMENT_TYPES.VERIFICATION ? "Profile verified!" : "Subscription activated!"}`,
+        data: { status: PAYMENT_STATUS.COMPLETED, verified, subscribed },
+      };
+    }
+
+    // If failed or other status
+    await paymentRef.update({
+      status: newStatus,
+      updatedAt: serverTimestamp(),
+    });
+
+    return {
+      success: false,
+      message: `Payment status is ${newStatus}`,
+      data: { status: newStatus },
+    };
+  }
+);
+
+/**
+ * Cloud Function (HTTP): UddoktaPay Webhook (IPN) Handler
+ *
+ * Receives POST requests from UddoktaPay when admin clicks
+ * "SEND WEBHOOK REQUEST" in the UddoktaPay dashboard.
+ *
+ * This auto-approves pending payments and processes verification/subscription
+ * without requiring manual approval in the SHIRAH admin panel.
+ *
+ * Webhook payload (from UddoktaPay docs):
+ * {
+ *   "full_name": "John Doe",
+ *   "email": "user@email.com",
+ *   "amount": "100.00",
+ *   "fee": "0.00",
+ *   "charged_amount": "100.00",
+ *   "invoice_id": "Erm9wzjM0FBwjSYT0QVb",
+ *   "metadata": { "payment_type": "verification", "uid": "abc123" },
+ *   "payment_method": "bkash",
+ *   "sender_number": "01311111111",
+ *   "transaction_id": "TESTTRANS1",
+ *   "date": "2023-01-07 14:00:50",
+ *   "status": "COMPLETED"
+ * }
+ *
+ * Security: Validates the RT-UDDOKTAPAY-API-KEY header against stored API key.
+ */
+export const uddoktapayWebhook = functions.https.onRequest(
+  { region: REGION, cors: false },
+  async (req, res) => {
+    // Only accept POST requests
+    if (req.method !== "POST") {
+      res.status(405).json({ status: false, message: "Method not allowed" });
+      return;
+    }
+
+    try {
+      // --- 1. Validate API key ---
+      const headerApiKey = req.headers["rt-uddoktapay-api-key"] as string | undefined;
+      if (!headerApiKey) {
+        functions.logger.warn("Webhook: Missing API key header");
+        res.status(401).json({ status: false, message: "Unauthorized: Missing API key" });
+        return;
+      }
+
+      const config = await getAppConfig();
+      const activeEnv = config.uddoktaPay.isSandbox
+        ? config.uddoktaPay.sandbox
+        : config.uddoktaPay.production;
+
+      if (headerApiKey !== activeEnv.apiKey) {
+        functions.logger.warn("Webhook: Invalid API key", { received: headerApiKey.substring(0, 8) + "..." });
+        res.status(401).json({ status: false, message: "Unauthorized: Invalid API key" });
+        return;
+      }
+
+      // --- 2. Parse webhook data ---
+      const webhookData = req.body;
+      const invoiceId: string = webhookData?.invoice_id;
+      const webhookStatus: string = webhookData?.status;
+
+      if (!invoiceId) {
+        functions.logger.warn("Webhook: Missing invoice_id", { body: webhookData });
+        res.status(400).json({ status: false, message: "Missing invoice_id" });
+        return;
+      }
+
+      functions.logger.info("Webhook received", {
+        invoiceId,
+        status: webhookStatus,
+        paymentMethod: webhookData?.payment_method,
+        amount: webhookData?.amount,
+      });
+
+      // --- 3. Find existing payment transaction ---
+      const existingPayments = await db
+        .collection(COLLECTIONS.PAYMENT_TRANSACTIONS)
+        .where("invoiceId", "==", invoiceId)
+        .limit(1)
+        .get();
+
+      if (existingPayments.empty) {
+        // Payment not found in our system — might not have been recorded yet.
+        // This can happen if webhook arrives before the app sends createPaymentTransaction.
+        functions.logger.warn("Webhook: Payment not found for invoiceId", { invoiceId });
+        res.status(404).json({ status: false, message: "Payment not found" });
+        return;
+      }
+
+      const paymentDoc = existingPayments.docs[0];
+      const paymentData = paymentDoc.data() as PaymentTransaction;
+      const paymentRef = paymentDoc.ref;
+
+      // --- 4. Map webhook status ---
+      let newStatus: string;
+      switch (webhookStatus?.toLowerCase()) {
+        case "completed":
+          newStatus = PAYMENT_STATUS.COMPLETED;
+          break;
+        case "pending":
+          newStatus = PAYMENT_STATUS.PENDING;
+          break;
+        case "canceled":
+        case "cancelled":
+          newStatus = PAYMENT_STATUS.CANCELED;
+          break;
+        default:
+          newStatus = PAYMENT_STATUS.FAILED;
+      }
+
+      // --- 5. Skip if status hasn't improved ---
+      // Only process if transitioning from PENDING → COMPLETED
+      if (paymentData.status === PAYMENT_STATUS.COMPLETED) {
+        functions.logger.info("Webhook: Payment already completed, skipping", { invoiceId });
+        res.status(200).json({ status: true, message: "Payment already completed" });
+        return;
+      }
+
+      if (newStatus !== PAYMENT_STATUS.COMPLETED) {
+        // Webhook arrived but status is not COMPLETED — just update metadata
+        functions.logger.info("Webhook: Non-completion status update", { invoiceId, newStatus });
+        await paymentRef.update({
+          status: newStatus,
+          "webhookData": webhookData,
+          updatedAt: serverTimestamp(),
+        });
+        res.status(200).json({ status: true, message: `Payment status updated to ${newStatus}` });
+        return;
+      }
+
+      // --- 6. Auto-approve: PENDING → COMPLETED ---
+      functions.logger.info("Webhook: Auto-approving pending payment", {
+        invoiceId,
+        uid: paymentData.uid,
+        type: paymentData.type,
+      });
+
+      // Update payment document
+      await paymentRef.update({
+        status: PAYMENT_STATUS.COMPLETED,
+        processedBy: "webhook",
+        processedAt: serverTimestamp(),
+        "webhookData": webhookData,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Process verification/subscription
+      const paymentUid = paymentData.uid;
+      if (paymentData.type === PAYMENT_TYPES.VERIFICATION) {
+        await processVerification(paymentUid, paymentDoc.id);
+      } else if (paymentData.type === PAYMENT_TYPES.SUBSCRIPTION) {
+        await processSubscription(paymentUid, paymentDoc.id);
+      }
+
+      // Audit log
+      await createAuditLog({
+        actorUid: "system",
+        actorRole: "system",
+        action: AUDIT_ACTIONS.PAYMENT_ADMIN_APPROVED,
+        targetUid: paymentUid,
+        metadata: {
+          paymentTransactionId: paymentDoc.id,
+          type: paymentData.type,
+          amount: paymentData.amount,
+          invoiceId,
+          approvedVia: "uddoktapay_webhook",
+        },
+      });
+
+      functions.logger.info("Webhook: Payment approved successfully", {
+        invoiceId,
+        uid: paymentUid,
+        type: paymentData.type,
+      });
+
+      res.status(200).json({
+        status: true,
+        message: `Payment approved. ${paymentData.type === PAYMENT_TYPES.VERIFICATION ? "User verified" : "Subscription activated"}.`,
+      });
+    } catch (error) {
+      functions.logger.error("Webhook processing error", { error });
+      res.status(500).json({ status: false, message: "Internal server error" });
+    }
   }
 );

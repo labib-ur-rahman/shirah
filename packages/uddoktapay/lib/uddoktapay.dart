@@ -18,6 +18,7 @@ class UddoktaPay {
     required CustomerDetails customer,
     UddoktapayCredentials? credentials,
     required String amount,
+    Map<String, dynamic>? metadata,
   }) async {
     final controller = Get.put(PaymentController());
 
@@ -26,6 +27,8 @@ class UddoktaPay {
       amount: amount,
       context: context,
       uddoktapayCredentials: credentials,
+      metadata: metadata,
+      webhookUrl: credentials?.webhookUrl,
     );
 
     debugPrint('Request Response: $request');

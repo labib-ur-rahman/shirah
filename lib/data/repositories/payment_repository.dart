@@ -66,6 +66,24 @@ class PaymentRepository {
     }
   }
 
+  // ===== RE-VERIFY =====
+
+  /// Re-verify a pending payment by checking UddoktaPay API server-side
+  /// Returns { success, message, data: { status, verified?, subscribed? } }
+  Future<Map<String, dynamic>> reVerifyPendingPayment({
+    required String paymentTransactionId,
+  }) async {
+    try {
+      final result = await _cloudFunctions.reVerifyPendingPayment(
+        paymentTransactionId: paymentTransactionId,
+      );
+      return result;
+    } catch (e) {
+      LoggerService.error('PaymentRepository: reVerifyPendingPayment', e);
+      rethrow;
+    }
+  }
+
   // ===== PROCESS =====
 
   /// Verify user (called after successful payment)

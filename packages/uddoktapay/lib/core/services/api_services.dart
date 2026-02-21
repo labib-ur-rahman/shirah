@@ -58,11 +58,12 @@ class ApiServices {
       'full_name': customer.fullName,
       'email': customer.email,
       'amount': amount,
-      'metadata': metadata ?? {"order_id": "10", "product_id": "5"},
+      'metadata': metadata ?? {},
       'redirect_url': redirectUrl,
       'cancel_url': cancelUrl,
       'return_type': 'GET',
-      if (webhookUrl != null) 'webhook_url': webhookUrl,
+      if (webhookUrl != null && webhookUrl.isNotEmpty)
+        'webhook_url': webhookUrl,
     };
 
     debugPrint('Request Data $requestData');
@@ -131,8 +132,13 @@ class ApiServices {
       body: jsonEncode(requestData),
     );
 
+    debugPrint('📋 Verify response (${response.statusCode}): ${response.body}');
+
     if (response.statusCode == 200) {
-      return requestResponseFromJson(response.body);
+      final result = requestResponseFromJson(response.body);
+      debugPrint(
+          '📋 Parsed status: ${result.status} | method: ${result.paymentMethod} | amount: ${result.amount}');
+      return result;
     } else {
       final decoded = jsonDecode(response.body);
       snackBar(decoded['message'], context);

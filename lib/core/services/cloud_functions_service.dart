@@ -525,6 +525,15 @@ class CloudFunctionsService extends GetxController {
     return call('getPaymentConfig', null);
   }
 
+  /// Re-verify a pending payment by calling UddoktaPay verify API server-side
+  Future<Map<String, dynamic>> reVerifyPendingPayment({
+    required String paymentTransactionId,
+  }) async {
+    return call('reVerifyPendingPayment', {
+      'paymentTransactionId': paymentTransactionId,
+    });
+  }
+
   /// Admin: Approve a pending payment
   Future<Map<String, dynamic>> adminApprovePayment({
     required String paymentTransactionId,
