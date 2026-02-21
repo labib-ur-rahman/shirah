@@ -91,6 +91,8 @@ export interface UddoktaPayEnvironment {
   apiKey: string;
   panelURL: string;
   redirectURL: string;
+  /** Cloud Function HTTP URL for UddoktaPay webhook (IPN) notifications */
+  webhookURL: string;
 }
 
 export interface UddoktaPayConfig {
@@ -222,11 +224,13 @@ export const DEFAULT_CONFIG: AppConfig = {
       apiKey: "",
       panelURL: "",
       redirectURL: "",
+      webhookURL: "",
     },
     production: {
       apiKey: "",
       panelURL: "",
       redirectURL: "",
+      webhookURL: "",
     },
   },
 };

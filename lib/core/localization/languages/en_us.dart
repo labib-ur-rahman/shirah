@@ -380,6 +380,13 @@ const Map<String, String> enUS = {
   'payment_result_pending_title': 'Payment Pending',
   'payment_result_pending_message':
       'Your payment is being processed. We will notify you once it is confirmed. This usually takes a few minutes.',
+  'payment_result_check_status': 'Check Status',
+  'payment_checking_status': 'Checking payment status...',
+  'payment_still_pending':
+      'Payment is still pending. Please wait for approval.',
+  'payment_now_completed': 'Payment completed successfully!',
+  'payment_status_check_failed':
+      'Could not check payment status. Please try again later.',
   'payment_result_failed_message':
       'Your payment could not be completed. Please check your balance and try again.',
   'payment_result_cancelled_message':

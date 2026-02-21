@@ -382,6 +382,13 @@ const Map<String, String> bnBD = {
   'payment_result_pending_title': 'পেমেন্ট অপেক্ষমাণ',
   'payment_result_pending_message':
       'আপনার পেমেন্ট প্রক্রিয়াধীন। নিশ্চিত হলে আমরা জানাব। এটি সাধারণত কয়েক মিনিট সময় নেয়।',
+  'payment_result_check_status': 'স্ট্যাটাস চেক করুন',
+  'payment_checking_status': 'পেমেন্ট স্ট্যাটাস চেক করা হচ্ছে...',
+  'payment_still_pending':
+      'পেমেন্ট এখনও অপেক্ষমাণ। অনুগ্রহ করে অনুমোদনের জন্য অপেক্ষা করুন।',
+  'payment_now_completed': 'পেমেন্ট সফলভাবে সম্পন্ন হয়েছে!',
+  'payment_status_check_failed':
+      'পেমেন্ট স্ট্যাটাস চেক করা যায়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন।',
   'payment_result_failed_message':
       'আপনার পেমেন্ট সম্পন্ন করা যায়নি। অনুগ্রহ করে আপনার ব্যালেন্স চেক করুন এবং আবার চেষ্টা করুন।',
   'payment_result_cancelled_message':

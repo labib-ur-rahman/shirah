@@ -386,6 +386,13 @@ class AppStrings {
       'payment_result_pending_title'.tr;
   static String get paymentResultPendingMessage =>
       'payment_result_pending_message'.tr;
+  static String get paymentResultCheckStatus =>
+      'payment_result_check_status'.tr;
+  static String get paymentCheckingStatus => 'payment_checking_status'.tr;
+  static String get paymentStillPending => 'payment_still_pending'.tr;
+  static String get paymentNowCompleted => 'payment_now_completed'.tr;
+  static String get paymentStatusCheckFailed =>
+      'payment_status_check_failed'.tr;
   static String get paymentResultFailedMessage =>
       'payment_result_failed_message'.tr;
   static String get paymentResultCancelledMessage =>

@@ -53,6 +53,8 @@ class VerificationController extends GetxController {
       paymentConfig.value['panelURL']?.toString() ?? '';
   String get uddoktaPayRedirectURL =>
       paymentConfig.value['redirectURL']?.toString() ?? '';
+  String get uddoktaPayWebhookURL =>
+      paymentConfig.value['webhookURL']?.toString() ?? '';
 
   // Prices — CF returns verificationPriceBDT / subscriptionPriceBDT
   double get verificationPrice =>
@@ -236,15 +238,22 @@ class VerificationController extends GetxController {
         'panelURL: $uddoktaPayPanelURL | redirectURL: $redirectURL',
       );
 
+      // Build webhook URL for UddoktaPay IPN (auto-approve pending payments)
+      final webhookUrl = uddoktaPayWebhookURL.isNotEmpty
+          ? uddoktaPayWebhookURL
+          : null;
+
       late final RequestResponse result;
       result = await UddoktaPay.createPayment(
         context: Get.context!,
         customer: customerDetails,
         amount: amount.toStringAsFixed(2),
+        metadata: {'payment_type': type, 'uid': user.uid},
         credentials: UddoktapayCredentials(
           apiKey: uddoktaPayApiKey,
           panelURL: uddoktaPayPanelURL,
           redirectURL: redirectURL,
+          webhookUrl: webhookUrl,
         ),
       );
 
@@ -355,14 +364,22 @@ class VerificationController extends GetxController {
     required RequestResponse paymentResult,
   }) async {
     try {
+      EasyLoading.show(status: AppStrings.verificationProcessing);
+
       final payload = _buildCamelCasePayload(paymentResult);
 
-      await _paymentRepo.createPaymentTransaction(
+      final txResult = await _paymentRepo.createPaymentTransaction(
         type: type,
         uddoktapayResponse: payload,
       );
 
-      // Show pending result dialog
+      EasyLoading.dismiss();
+
+      // Extract paymentTransactionId for re-verify
+      final data = txResult['data'] as Map?;
+      final paymentTxId = data?['paymentTransactionId']?.toString() ?? '';
+
+      // Show pending result dialog with "Check Status" button
       await PaymentResultDialog.show(
         type: PaymentResultType.pending,
         paymentType: type,
@@ -370,14 +387,99 @@ class VerificationController extends GetxController {
         message: AppStrings.paymentResultPendingMessage,
         transactionId: paymentResult.invoiceId,
         amount: paymentResult.amount,
-        onPrimaryAction: () => Get.back(),
+        onPrimaryAction: paymentTxId.isNotEmpty
+            ? () => _checkPendingPaymentStatus(paymentTxId, type)
+            : () => Get.back(),
+        primaryActionText: paymentTxId.isNotEmpty
+            ? AppStrings.paymentResultCheckStatus
+            : null,
+        onRetry: null,
       );
 
       // Refresh payment history
       loadPaymentHistory();
     } catch (e) {
+      EasyLoading.dismiss();
       LoggerService.error('Error handling pending payment', e);
       AppSnackBar.errorSnackBar(title: AppStrings.error, message: e.toString());
+    }
+  }
+
+  /// Re-verify a pending payment by calling UddoktaPay verify API server-side.
+  ///
+  /// Called when user taps "Check Status" on the pending dialog.
+  /// If UddoktaPay now says COMPLETED → auto-processes and shows success.
+  /// If still PENDING → shows info snackbar.
+  Future<void> _checkPendingPaymentStatus(
+    String paymentTransactionId,
+    String type,
+  ) async {
+    try {
+      // Close the pending dialog first
+      Get.back();
+
+      EasyLoading.show(status: AppStrings.paymentCheckingStatus);
+
+      final result = await _paymentRepo.reVerifyPendingPayment(
+        paymentTransactionId: paymentTransactionId,
+      );
+
+      EasyLoading.dismiss();
+
+      final success = result['success'] as bool? ?? false;
+      final data = result['data'] as Map?;
+      final status = data?['status']?.toString() ?? '';
+      final message = result['message']?.toString() ?? '';
+
+      if (success && status == 'COMPLETED') {
+        // Payment is now completed! Refresh user and show success
+        await UserController.instance.refreshUser();
+
+        await PaymentResultDialog.show(
+          type: PaymentResultType.success,
+          paymentType: type,
+          title: type == 'verification'
+              ? AppStrings.paymentResultVerifiedTitle
+              : AppStrings.paymentResultSubscribedTitle,
+          message: type == 'verification'
+              ? AppStrings.paymentResultVerifiedMessage
+              : AppStrings.paymentResultSubscribedMessage,
+          onPrimaryAction: () => Get.back(),
+        );
+      } else if (status == 'PENDING') {
+        // Still pending — show the pending dialog again with check status
+        AppSnackBar.showInfoSnackBar(
+          title: AppStrings.pending,
+          message: AppStrings.paymentStillPending,
+        );
+
+        // Re-show pending dialog
+        await PaymentResultDialog.show(
+          type: PaymentResultType.pending,
+          paymentType: type,
+          title: AppStrings.paymentResultPendingTitle,
+          message: AppStrings.paymentStillPending,
+          onPrimaryAction: () =>
+              _checkPendingPaymentStatus(paymentTransactionId, type),
+          primaryActionText: AppStrings.paymentResultCheckStatus,
+        );
+      } else {
+        // Failed or other status
+        AppSnackBar.warningSnackBar(
+          title: AppStrings.paymentFailed,
+          message: message,
+        );
+      }
+
+      // Refresh history
+      loadPaymentHistory();
+    } catch (e) {
+      EasyLoading.dismiss();
+      LoggerService.error('Error checking pending payment status', e);
+      AppSnackBar.errorSnackBar(
+        title: AppStrings.error,
+        message: AppStrings.paymentStatusCheckFailed,
+      );
     }
   }
 
